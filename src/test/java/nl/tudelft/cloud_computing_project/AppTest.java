@@ -1,4 +1,4 @@
-//package nl.tudelft.cloud-computing-project;
+package nl.tudelft.cloud_computing_project;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
