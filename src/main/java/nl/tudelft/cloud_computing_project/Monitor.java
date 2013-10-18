@@ -1,8 +1,12 @@
 package nl.tudelft.cloud_computing_project;
 
-public class Monitor {
+public class Monitor{
 	
 	private static Monitor instance;
+	
+	public Monitor(){
+		System.out.println("Monitor thread started!");
+	}
 	
 	public static Monitor getInstance(){
 		
