@@ -26,6 +26,8 @@
     </repository>
   </repositories>
   <scm>
-  	<url>git@github.com:Widar91/cloud-computing-project.git</url>
+  	<developerConnection>scm:git:ssh://git@github.com:Widar91/cloud-computing-project.git</developerConnection>
+  	<url>https://github.com/Widar91/cloud-computing-project</url>
+  	<connection>https://github.com/Widar91/cloud-computing-project</connection>
   </scm>
 </project>
