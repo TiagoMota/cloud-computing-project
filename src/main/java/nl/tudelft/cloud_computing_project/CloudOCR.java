@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 public class CloudOCR {
 	
-	public static Logger MAINLOG = LoggerFactory.getLogger(CloudOCR.class);
+	public static Logger LOG = LoggerFactory.getLogger(CloudOCR.class);
 	
 	private static Thread SchedulerThread;
 	private static Thread MonitorThread;
@@ -13,10 +13,10 @@ public class CloudOCR {
 	
 	
 	public static void main(String[] args) {
-		MAINLOG.info("Entering Cloud OCR!");
+		LOG.info("Entering Cloud OCR!");
 		
 		
-		MAINLOG.error("Boo");
+		LOG.error("Boo");
 		
 		// Thread that runs the scheduler every 5s
 		SchedulerThread = new Thread() {
@@ -27,7 +27,7 @@ public class CloudOCR {
 						s.schedule();
 						Thread.sleep(5000);
 					} catch (InterruptedException e) {
-						MAINLOG.warn("SchedulerThread was interrupted", e);
+						LOG.warn("SchedulerThread was interrupted", e);
 						e.printStackTrace();
 					}
 				}
@@ -44,7 +44,7 @@ public class CloudOCR {
 						m.monitorSystem();
 						Thread.sleep(5000);
 					} catch (InterruptedException e) {
-						MAINLOG.warn("MonitorThread was interrupted", e);
+						LOG.warn("MonitorThread was interrupted", e);
 						e.printStackTrace();
 					}
 				}
@@ -61,7 +61,7 @@ public class CloudOCR {
 						am.allocate();
 						Thread.sleep(5000);
 					} catch (InterruptedException e) {
-						MAINLOG.warn("AllocationManagerThread was interrupted", e);
+						LOG.warn("AllocationManagerThread was interrupted", e);
 						e.printStackTrace();
 					}
 				}
