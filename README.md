@@ -1,5 +1,4 @@
-cloud-computing-project
+CloudOCR
 =======================
 
-Project for IN4392 - Cloud Computing 
-CloudOCR
+Project for IN4392 - Cloud Computing
