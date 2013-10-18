@@ -10,46 +10,34 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class DBCreator {
+public class Database {
 
-    private static String dbname = "jdbc:sqlite:database.db" ;
-	
-    public static void setDebugMode(boolean debug) {
-		if(debug)
-		    dbname = "jdbc:sqlite:database_debug.db" ;
-		else
-		    dbname =  "jdbc:sqlite:database.db";
-    }
+    private static String dbname = "jdbc:mysql://cloudocr-db.c8yqjvuwxgg2.eu-west-1.rds.amazonaws.com:3306" ;
+    private static String dbuser = "cloudocr";
+    private static String dbpwd = "cloudocr";
     
-
-    public static void resetDB(){
-        String prevdbname = dbname;
-        setDebugMode(true);
-
-        creaPostTabella();
-		
-        dbname=prevdbname;
+    public static void main (String [] args) {
+    	insertJob();
     }
    
-    public static void creaPostTabella(){
+    public static void insertJob(){
 		try {
-			Class.forName("org.sqlite.JDBC");
+			Class.forName("com.mysql.jdbc.Driver").newInstance();
 		} 
-		catch (ClassNotFoundException ex) {
-		    Logger.getLogger(DBCreator.class.getName()).log(Level.SEVERE, null, ex);
+		catch (Exception ex) {
+		    Logger.getLogger(Database.class.getName()).log(Level.SEVERE, null, ex);
 		}
 
         Connection connection = null;
         try {
         	// create a database connection
-	        connection = DriverManager.getConnection(dbname);
+	        connection = DriverManager.getConnection(dbname, dbuser, dbpwd);
 	        Statement statement = connection.createStatement();
 	        statement.setQueryTimeout(30);  // set timeout to 30 sec.
-	
-	        statement.executeUpdate("drop table if exists post");
-	        statement.executeUpdate("create table post (id integer primary key autoincrement , titolo string,"
-	                  + "testo string, uda int, visibilita string, nodi string, bozza string, risorsa string, "
-	                  + "data string, utente string, pluginid int)");
+	        
+	        //statement.executeUpdate("create table post (id integer primary key autoincrement , titolo string,"
+	        //          + "testo string, uda int, visibilita string, nodi string, bozza string, risorsa string, "
+	        //          + "data string, utente string, pluginid int)");
         }
         catch(SQLException e) {
         	System.err.println(e.getMessage());
@@ -71,7 +59,7 @@ public class DBCreator {
 		    Class.forName("org.sqlite.JDBC");
 		} 
 		catch (ClassNotFoundException ex) {
-		    Logger.getLogger(DBCreator.class.getName()).log(Level.SEVERE, null, ex);
+		    Logger.getLogger(Database.class.getName()).log(Level.SEVERE, null, ex);
 		}
 
         Connection connection = null;
