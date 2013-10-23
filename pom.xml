@@ -29,6 +29,11 @@
 		<version>${slf4jVersion}</version>
 		<scope>runtime</scope>
     </dependency> 
+    <dependency>
+		<groupId>com.amazonaws</groupId>
+		<artifactId>aws-java-sdk</artifactId>
+		<version>1.6.2</version>
+	</dependency>
   </dependencies>
   <repositories>
     <repository>
