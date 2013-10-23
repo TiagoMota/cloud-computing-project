@@ -2,11 +2,16 @@ package nl.tudelft.cloud_computing_project.database;
 
 import java.util.Date;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Java representation of the Job table
  * The fields are public for easy access, but getters and setters are provided which will do data checking.
  */
 public class Job {
+	private static Logger LOG = LoggerFactory.getLogger(Job.class);
+	
 	/**
 	 * Job ID
 	 */
@@ -49,6 +54,19 @@ public class Job {
 			this.code = code;
 			this.name = name;
 		}
+		
+		public static JobStatus getByCode(int code) {
+			switch(code) {
+			case 1:
+				return SUBMITTED;
+			case 2:
+				return COMPLETED;
+			case 3:
+				return FAILED;
+			default:
+				throw new IllegalArgumentException("Invalid JobStatus Code");
+			}
+		}
 	}
 
 	/**
@@ -83,6 +101,10 @@ public class Job {
 	 * @param filesize the filesize to set
 	 */
 	public void setFilesize(long filesize) {
+		if(filesize < 0) {
+			LOG.warn("Filesize cannot be negative");
+			filesize = 0;
+		}
 		this.filesize = filesize;
 	}
 
@@ -97,6 +119,13 @@ public class Job {
 	 * @param priority the priority to set
 	 */
 	public void setPriority(int priority) {
+		if(priority < 0) {
+			LOG.warn("Priority cannot be lower than 0");
+			priority = 0;
+		}
+		if(priority > 99) {
+			LOG.warn("Priority cannot be higher than 99");
+		}
 		this.priority = priority;
 	}
 

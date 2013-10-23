@@ -4,8 +4,6 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import nl.tudelft.cloud_computing_project.CloudOCR;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
