@@ -59,13 +59,6 @@ public class Job {
 	}
 
 	/**
-	 * @param jid the jid to set
-	 */
-	public void setJid(int jid) {
-		Jid = jid;
-	}
-
-	/**
 	 * @return the filename
 	 */
 	public String getFilename() {
