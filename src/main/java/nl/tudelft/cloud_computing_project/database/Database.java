@@ -2,6 +2,7 @@ package nl.tudelft.cloud_computing_project.database;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sql2o.Connection;
 import org.sql2o.Sql2o;
 
 public class Database {
@@ -18,6 +19,10 @@ public class Database {
      */
     public static Sql2o getConnection() {
     	return instance;
+    }
+    
+    public static java.sql.Connection getJDBCConnection() {
+    	return new Connection(getConnection()).getJdbcConnection();
     }
 }
    
