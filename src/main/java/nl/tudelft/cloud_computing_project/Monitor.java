@@ -12,8 +12,11 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
+import com.amazonaws.services.ec2.model.DescribeInstanceStatusResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceStatus;
 import com.amazonaws.services.ec2.model.Reservation;
 
 
@@ -38,6 +41,7 @@ public class Monitor{
 		 init();
 
 		 try {
+			 //Retrieve the list of instances
 			 DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
 			 List<Reservation> reservations = describeInstancesRequest.getReservations();
 			 Set<Instance> instances = new HashSet<Instance>();
@@ -47,6 +51,32 @@ public class Monitor{
 			 }
 
 			 LOG.debug("You have " + instances.size() + " Amazon EC2 instance(s) running.");
+			 
+			 //Retrieve instances status
+			 DescribeInstanceStatusResult describeInstanceResult = ec2.describeInstanceStatus(new DescribeInstanceStatusRequest());
+			 List<InstanceStatus> state = describeInstanceResult.getInstanceStatuses();
+
+			 for (InstanceStatus instanceStatusInfo : state){
+				 	//Retrieve machine state (running, stopped, booting)
+	            	String machineState = instanceStatusInfo.getInstanceState().getName();
+	            	
+	            	if(machineState.equalsIgnoreCase("running")) {
+	            		//Retrieve status info
+	            		String instanceStatus = instanceStatusInfo.getInstanceStatus().getStatus();
+	            		String systemStatus = instanceStatusInfo.getSystemStatus().getStatus();
+	            		
+	            		//Change DB entry's status in case of machine failure
+	            		if(!instanceStatus.equalsIgnoreCase("ok") || !systemStatus.equalsIgnoreCase("ok")) {
+
+	            		}	
+	            		//Check job status on running machines
+	            		else {
+	            			
+	            		}
+	            	}
+			}
+			 
+			 
 		 } catch (AmazonServiceException ase) {
 			 LOG.error("Caught Exception: " + ase.getMessage());
 			 LOG.error("Reponse Status Code: " + ase.getStatusCode());
