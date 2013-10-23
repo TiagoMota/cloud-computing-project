@@ -15,6 +15,18 @@ public class Assignment {
 	private int order;
 	
 	/**
+	 * @param wid
+	 * @param jib
+	 * @param order
+	 */
+	public Assignment(int wid, int jib, int order) {
+		Wid = wid;
+		Jib = jib;
+		this.order = order;
+		this.processing = false;
+	}
+	
+	/**
 	 * @return the wid
 	 */
 	public int getWid() {
