@@ -4,7 +4,7 @@ import org.sql2o.Sql2o;
 
 public class Database {
 
-    private static final String dbname = "jdbc:mysql://cloudocr-db.c8yqjvuwxgg2.eu-west-1.rds.amazonaws.com:3306" ;
+    private static final String dbname = "jdbc:mysql://cloudocr-db.c8yqjvuwxgg2.eu-west-1.rds.amazonaws.com:3306/cloudocr_db" ;
     private static final String dbuser = "cloudocr";
     private static final String dbpwd = "cloudocr";
     
@@ -18,7 +18,9 @@ public class Database {
      * Get a database connection (thread-local)
      */
     public static Sql2o getConnection() {
-    	return instance.get();
+    	//return instance.get();
+    	Sql2o i = new Sql2o(dbname, dbuser, dbpwd);
+    	return i;
     }
     
     /**

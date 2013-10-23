@@ -15,14 +15,16 @@ public class Scheduler {
 	private List<WorkerLoad> workers; 
 	private Sql2o sql2o;
 	
-	String queue_sql =  "SELECT Jid, priority, submission_time, jobstatus" +
-						"FROM Job" + 
+	String queue_sql =  "SELECT Jid, priority, submission_time, jobstatus " +
+						"FROM Job " +
+						"WHERE jobstatus = " + Job.JobStatus.SUBMITTED.code + " " +
+						"AND Jid NOT IN (SELECT Jid FORM Assignment) " +
 						"ORDER BY submission_time and priority";
 	
-	String workers_sql = "SELECT Worker.Wid, SUM(filesize) AS total_load FROM Worker" +
-						 	"JOIN Assignment ON Assignment.Wid = Worker.Wid" +
-						 	"JOIN Job ON Job.Jid = Assignment.Jid" +
-						 		"WHERE jobstatus = 1" +
+	String workers_sql = "SELECT Worker.Wid, SUM(filesize) AS total_load FROM Worker " +
+						 	"JOIN Assignment ON Assignment.Wid = Worker.Wid " +
+						 	"JOIN Job ON Job.Jid = Assignment.Jid " +
+						 		"WHERE jobstatus = 1 " +
 						 "GROUP BY Worker.Wid";
 	
 	String order_sql = "SELECT Wid, MAX(order) as Order FROM Assignment GROUP BY Wid";
@@ -76,14 +78,14 @@ public class Scheduler {
 	}
 	
 	public void schedule() {
-		// TODO: Implement scheduler
+		sql2o = Database.getConnection();	
 		
 		LOG.info("Querying DB for jobs");
 		pullJobQueue();
 		LOG.info("Now scheduling");
 		
 		// Query the database for available alive workers, order by total job length.
-		sql2o = Database.getConnection();		
+			
 		workers = sql2o.createQuery(workers_sql).executeAndFetch(WorkerLoad.class);
 		// Schedule first job in queue to the available worker with the least total job length
 		while(!queue.isEmpty()){
@@ -101,5 +103,10 @@ public class Scheduler {
 		Database.releaseConnection();
 		
 		
+	}
+	
+	public static void main(String[] args) {
+		Scheduler s = new Scheduler();
+		s.schedule();
 	}
 }
