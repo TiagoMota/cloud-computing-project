@@ -14,20 +14,9 @@ import org.slf4j.LoggerFactory;
 public class Worker {
 	private static Logger LOG = LoggerFactory.getLogger(Worker.class);
 	
-	/**
-	 * Worker ID
-	 */
-	public int Wid;
-	
-	/**
-	 * IP adress in numeric form. Don't edit this directly but use the getters and setters.
-	 */
-	public int ip;
-	
-	/**
-	 * Worker Status, see WorkerStatus enum.
-	 */
-	public int workerstatus;
+	private int Wid; 			/* Worker ID */
+	private int ip; 			/* IP adress in numeric form. */
+	private int workerstatus; 	/* Worker Status, see WorkerStatus enum. */
 	
 	public enum WorkerStatus {
 		ALIVE(1, "alive"),
@@ -62,7 +51,7 @@ public class Worker {
 
 	/**
 	 * Returns the IP in a usable format
-	 * Returns null if IP adress couldn't be parsed, but this shouldn't happen.
+	 * Returns null if IP address couldn't be parsed, but this shouldn't happen.
 	 * @return the ip
 	 */
 	public Inet4Address getIp() {

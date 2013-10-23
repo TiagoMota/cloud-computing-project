@@ -8,10 +8,11 @@ package nl.tudelft.cloud_computing_project.database;
  * The fields are public for easy access, but getters and setters are provided which will do data checking.
  */
 public class Assignment {
-	public int Wid;
-	public int Jib;
-	public boolean processing;
-	public int order;
+	
+	private int Wid;
+	private int Jib;
+	private boolean processing;
+	private int order;
 	
 	/**
 	 * @return the wid
