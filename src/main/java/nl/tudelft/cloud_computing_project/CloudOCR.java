@@ -38,7 +38,7 @@ public class CloudOCR {
 		
 		MonitorThread = new Thread() {
 			public void run(){
-				Monitor m = new Monitor();
+				Monitor m = Monitor.getInstance();
 				while(true){
 					try {
 						m.monitorSystem();
