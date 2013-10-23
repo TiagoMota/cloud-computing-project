@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 public class CloudOCR {
 	
-	public static Logger LOG = LoggerFactory.getLogger(CloudOCR.class);
+	private static Logger LOG = LoggerFactory.getLogger(CloudOCR.class);
 	
 	private static Thread SchedulerThread;
 	private static Thread MonitorThread;
