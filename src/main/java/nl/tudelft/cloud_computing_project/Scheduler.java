@@ -83,7 +83,7 @@ public class Scheduler {
 	 * Put assignments into the database
 	 */
 	private void assignJobs(Iterable<Assignment> assignments) {
-		Connection c = sql2o.beginTransaction();
+		Connection c = sql2o.beginTransaction().setRollbackOnException(true);
 		try {
 			Query q = c.createQuery(assign_sql, "assign_sql");
 			for(Assignment a : assignments) {
@@ -159,7 +159,6 @@ public class Scheduler {
 		
 		assignJobs(assignments);
 		
-		Database.releaseConnection();
 		LOG.info(String.format("Scheduled %d jobs", assignments.size()));
 	}
 	
