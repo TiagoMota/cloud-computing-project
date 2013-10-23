@@ -12,35 +12,13 @@ import org.slf4j.LoggerFactory;
 public class Job {
 	private static Logger LOG = LoggerFactory.getLogger(Job.class);
 	
-	/**
-	 * Job ID
-	 */
-	public int Jid;
-	/**
-	 * Filename of the submission (URI)
-	 */
-	public String filename;
-	/**
-	 * Filesize in bytes
-	 */
-	public long filesize;
-	/**
-	 * Priority of the Job, higher = higher priority
-	 * 0 - 99. Default is 50.
-	 */
-	public int priority;
-	/**
-	 * Number of times this job has failed
-	 */
-	public int num_failures;
-	/**
-	 * Date and time of submission
-	 */
-	public Date submission_time;
-	/**
-	 * Current job status, see JobStatus enum
-	 */
-	public int jobstatus;
+	private int Jid; 				/* Job ID */
+	private String filename; 		/* Filename of the submission (URI) */
+	private long filesize; 			/* Filesize in bytes */
+	private int priority; 			/* Priority of the Job, higher = higher priority. 0 - 99. Default is 50. */
+	private int num_failures; 		/* Number of times this job has failed */
+	private Date submission_time; 	/* Date and time of submission */
+	private int jobstatus; 			/* Current job status, see JobStatus enum */
 	
 	public enum JobStatus {
 		SUBMITTED(1, "submitted"),
@@ -160,8 +138,8 @@ public class Job {
 	/**
 	 * @return the jobstatus
 	 */
-	public int getJobstatus() {
-		return jobstatus;
+	public JobStatus getJobstatus() {
+		return JobStatus.getByCode(jobstatus);
 	}
 
 	/**

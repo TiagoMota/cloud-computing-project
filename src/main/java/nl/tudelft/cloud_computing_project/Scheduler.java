@@ -93,9 +93,9 @@ public class Scheduler {
 					minIndex = i;
 			}
 			//add new filesize to the workers load
-			workers.get(minIndex).total_load += queue.get(0).filesize;
+			workers.get(minIndex).total_load += queue.get(0).getFilesize();
 			//find worker order value $ finally schedule job
-			assignJob(queue.get(0).Jid, workers.get(minIndex).Wid, getWorkerOrder(workers.get(minIndex).Wid));
+			assignJob(queue.get(0).getJid(), workers.get(minIndex).Wid, getWorkerOrder(workers.get(minIndex).Wid));
 			queue.remove(0);
 		}
 		Database.releaseConnection();
