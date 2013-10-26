@@ -5,11 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import nl.tudelft.cloud_computing_project.database.Database;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sql2o.Sql2o;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -28,7 +25,6 @@ public class Monitor{
 	
 	private static Monitor instance;
 	private AmazonEC2 ec2;
-	private Sql2o sql2o;
 	private FaultManager faultManager;
 	private FaultManagerThread faultManagerThread;
 
@@ -81,10 +77,7 @@ public class Monitor{
 	
 	public void monitorSystem(){
 
-		 
-
 		 try {
-			 sql2o = Database.getConnection();
 			 
 			 //Retrieve the list of instances from EC2
 			 DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
