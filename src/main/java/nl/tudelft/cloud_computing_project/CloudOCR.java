@@ -7,10 +7,18 @@ public class CloudOCR {
 	
 	private static Logger LOG = LoggerFactory.getLogger(CloudOCR.class);
 	
+	// TODO: Make these configurable
+	/**
+	 * Number of milliseconds to wait between scheduling intervals
+	 * Notice: The scheduler will wait this long after one cycle has completed.
+	 */
+	private static final long scheduler_interval = 10000;
+	private static final long monitor_interval = 5000;
+	private static final long allocation_interval = 60000;
+	
 	private static Thread SchedulerThread;
 	private static Thread MonitorThread;
 	private static Thread AllocationManagerThread;
-	
 	
 	public static void main(String[] args) {
 		LOG.info("Entering Cloud OCR!");
@@ -25,10 +33,9 @@ public class CloudOCR {
 				while(true){
 					try {
 						s.schedule();
-						Thread.sleep(5000);
+						Thread.sleep(scheduler_interval);
 					} catch (InterruptedException e) {
-						LOG.warn("SchedulerThread was interrupted", e);
-						e.printStackTrace();
+						LOG.warn("SchedulerThread sleep was interrupted", e);
 					}
 				}
 			}
@@ -42,10 +49,9 @@ public class CloudOCR {
 				while(true){
 					try {
 						m.monitorSystem();
-						Thread.sleep(5000);
+						Thread.sleep(monitor_interval);
 					} catch (InterruptedException e) {
-						LOG.warn("MonitorThread was interrupted", e);
-						e.printStackTrace();
+						LOG.warn("MonitorThread sleep was interrupted", e);
 					}
 				}
 			}
@@ -59,10 +65,9 @@ public class CloudOCR {
 				while(true){
 					try {
 						am.allocate();
-						Thread.sleep(5000);
+						Thread.sleep(allocation_interval);
 					} catch (InterruptedException e) {
-						LOG.warn("AllocationManagerThread was interrupted", e);
-						e.printStackTrace();
+						LOG.warn("AllocationManagerThread sleep was interrupted", e);
 					}
 				}
 			}
