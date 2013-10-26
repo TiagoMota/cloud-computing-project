@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.TreeSet;
 
 import nl.tudelft.cloud_computing_project.model.*;
 
@@ -21,31 +25,57 @@ public class Scheduler {
 	private static final Logger LOG = LoggerFactory.getLogger(Scheduler.class);
 	
 	private final String jobqueue_sql = 
-		"SELECT Jid, priority, submission_time, jobstatus" +
+		"SELECT id, filesize" +
 		" FROM Job " +
 		" WHERE jobstatus = " + Job.JobStatus.SUBMITTED.code +
-		" AND Jid NOT IN (SELECT Jid FROM Assignment)" +
+		" AND id NOT IN (SELECT job_id FROM Assignment)" +
 		" ORDER BY priority, submission_time";
 	
-	
-	private final String workers_sql =
-		"SELECT Worker.Wid AS Wid, COALESCE(MAX(Assignment.order), 0) AS maxorder, SUM(COALESCE(Job.filesize, 0)) AS worker_load" +
-		" FROM Worker" +
-		" LEFT JOIN Assignment ON Assignment.Wid = Worker.Wid" +
-		" LEFT JOIN Job ON Job.Jid = Assignment.Jid " +
-		" WHERE workerstatus = " + Worker.WorkerStatus.ALIVE.code +
-		" GROUP BY Worker.Wid";
-	
-	private final String assign_sql = "INSERT INTO Assignment(Jid, Wid, order)" +
-						"VALUES (:_Jid, :_Wid, :_order)";
+	private final String worker_load_sql =
+			  "SELECT worker_instanceid AS instance_id, COALESCE(MAX(Assignment.order), 0) AS maxorder, SUM(COALESCE(Job.filesize, 0)) AS worker_load"
+			+ " FROM Assignment"
+			+ " JOIN Job On Job.id = Assignment.job_id"
+			+ " GROUP BY Assignment.worker_instanceid";
+
+	private final String assign_sql = "INSERT INTO Assignment(job_id, worker_instanceid, order)" +
+						"VALUES (:job_id, :worker_instanceid, :order)";
 	
 	private Sql2o sql2o;
 	// Jobs in the order they should be assigned to workers
 	private Iterable<Job> jobs;
 	
 	// Worker information
-	private Map<Integer, Long> worker_load;
-	private Map<Integer, Integer> worker_maxorder;
+	public class Worker {
+		public String instance_id;
+		public long load;
+		public int maxorder;
+		
+		public Worker() {}
+		
+		public Worker(final String instance_id) {
+			this.instance_id = instance_id;
+		}
+
+		@Override
+		public int hashCode() {
+			return instance_id.hashCode();
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof Worker))
+				return false;
+			return instance_id.equals(((Worker) obj).instance_id);
+		}
+	}
+	private Set<Worker> workers;
 	
 	// TODO: Make this configurable
 	/**
@@ -68,14 +98,27 @@ public class Scheduler {
 	 * Gets the information for the available workers
 	 */
 	private void pullWorkerInfo() {
-		Table t = sql2o.createQuery(workers_sql, "workers_sql").executeAndFetchTable();
+		// We could actually change the query to only fetch info of the workers we're intered in
+		// But this is only small overhead and much easier coding
+		List<Worker> workersinfo =
+				sql2o
+				.createQuery(worker_load_sql, "workers_sql")
+				.addColumnMapping("worker_load", "load")
+				.executeAndFetch(Worker.class);
+		Map<String, Worker> workersinfomap = new HashMap<String, Worker>((int)(workersinfo.size()*1.5));
+		for(Worker w : workersinfo) {
+			workersinfomap.put(w.instance_id, w);
+		}
 		
-		worker_load = new HashMap<Integer, Long>((int)(t.rows().size()*1.5));
-		worker_maxorder = new HashMap<Integer, Integer>((int)(t.rows().size()*1.5));
-		
-		for(Row r : t.rows()) {
-			worker_load.put(r.getInteger("Wid"), r.getLong("worker_load"));
-			worker_maxorder.put(r.getInteger("Wid"), r.getInteger("maxorder"));
+		// Get the available workers
+		Set<String> availableWorkers = Monitor.getInstance().getAvailableInstancesId();
+		workers = new HashSet<Worker>(availableWorkers.size());
+		for(String instanceid : availableWorkers) {
+			Worker w = workersinfomap.get(instanceid);
+			if(w == null) {
+				w = new Worker(instanceid);
+			}
+			workers.add(w);
 		}
 	}
 	
@@ -88,9 +131,9 @@ public class Scheduler {
 			Query q = c.createQuery(assign_sql, "assign_sql");
 			for(Assignment a : assignments) {
 				q
-			    .addParameter("_Jid", a.getJib())
-			    .addParameter("_Wid", a.getWid())
-			    .addParameter("_order", a.getOrder())
+			    .addParameter("job_id", a.getJobId())
+			    .addParameter("worker_instanceid", a.getWorker())
+			    .addParameter("order", a.getOrder())
 			    .addToBatch();
 			}
 			q.executeBatch();
@@ -111,36 +154,39 @@ public class Scheduler {
 		LOG.debug("Using greedy load-balancing algorithm");
 		
 		// Make a sorted datastructure that sorts the workers on their load
-		PriorityQueue<Integer> workers = new PriorityQueue<Integer>(worker_load.size()+1, new Comparator<Integer>() {
-			public int compare(Integer o1, Integer o2) {
-				return Long.compare(worker_load.get(o1), worker_load.get(o2));
+		PriorityQueue<Worker> workers = new PriorityQueue<Worker>(this.workers.size()+1, new Comparator<Worker>() {
+			public int compare(Worker o1, Worker o2) {
+				return Long.compare(o1.load, o2.load);
 			}
 		});
+		
+		// Add all the workers to the queue
+		for(Worker w : this.workers) {
+			workers.add(w);
+		}
 		// Keep all the assignments in memory so we can commit them into the database in one go
 		Collection<Assignment> assignments = new ArrayList<Assignment>();
 		
 		// Go through all the jobs that can be assigned
 		for(Job j : jobs) {
-			Integer wid = null;
+			Worker w = null;
 			// Get the preferred worker to assign to
-			while(!workers.isEmpty() && wid == null) {
+			while(!workers.isEmpty() && w == null) {
 				// Get preferred worker
-				wid = workers.poll();
+				w = workers.poll();
 				// Check if the current load is acceptable, otherwise keep removed from queue
-				if(worker_load.get(wid) > getMaxWorkerLoad()) {
-					wid = null;
+				if(w.load > getMaxWorkerLoad()) {
+					w = null;
 				}
 			}
 			// Stop if no more workers are available
-			if(wid == null) {
+			if(w == null) {
 				break;
 			}
 			
 			// Assign job to worker
-			// TODO: Fix that this doesn't work if order is Integer.MAX_VALUE
-			int nextorder = worker_maxorder.get(wid)+1;
-			assignments.add(new Assignment(wid, j.getId(), nextorder));
-			worker_maxorder.put(wid, nextorder);
+			// TODO: Fix that this doesn't work if maxorder is Integer.MAX_VALUE
+			assignments.add(new Assignment(w.instance_id, j.getId(), w.maxorder++));
 		}
 		return assignments;
 	}
