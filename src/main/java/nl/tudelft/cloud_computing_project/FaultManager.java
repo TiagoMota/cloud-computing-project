@@ -13,19 +13,26 @@ import com.amazonaws.services.ec2.model.StopInstancesResult;
 
 public class FaultManager {
 	
-	private static FaultManager	instance;
-	private static AmazonEC2 	ec2;
-	private static Logger LOG = LoggerFactory.getLogger(FaultManager.class);
-	private Sql2o sql2o;
-	
 	private final String delete_instance_assignment_sql 	= "DELETE * "
 															+ "FROM Assignment "
 															+ "WHERE worker_instanceid = :instanceId";
-	
+													
 	private final String update_job_num_failures_sql 		= "UPDATE Job "
 															+ "JOIN Assignment ON Assignment.job_id = Job.id"
 															+ "SET num_failures = num_failures + 1"
 															+ "WHERE Assignment.worker_instanceid = :instanceId";
+													
+	private final String manage_failing_jobs_sql	 		= "UPDATE Job "
+															+ "SET jobstatus = 3"
+															+ "WHERE num_failures > :MAX_NUM_FAILURE ";
+								
+	// TODO: Can be made configurable
+	private final int MAX_NUM_FAILURE = 10;
+	
+	private static AmazonEC2 	ec2;
+	private static FaultManager	instance;
+	private static Logger LOG = LoggerFactory.getLogger(FaultManager.class);
+	private Sql2o sql2o;
 	
 	
 	private FaultManager(){}
@@ -35,7 +42,10 @@ public class FaultManager {
 		return instance;
 	}
 	
-	
+	/**
+	 * This method deals with a Worker's failure caused by Amazon's problems.
+	 * @param instanceId, the ID of the failed machine.
+	 */
 	public void WorkerFailure(String instanceId){
 		try {
 			
@@ -60,10 +70,14 @@ public class FaultManager {
 			 LOG.error("Request ID: " + ase.getRequestId());
 		 }
 	}
-
+	
+	/**
+	 * This method sets the status of a job to FAILED if it fails more than a fixed amount if time.
+	 */
 	public void manageFailingJobs() {
-		// TODO Auto-generated method stub
-		
+		sql2o = Database.getConnection();
+		sql2o.createQuery(manage_failing_jobs_sql, "manage_failing_jobs_sql").addParameter("MAX_NUM_FAILURE", MAX_NUM_FAILURE).executeUpdate();
+
 	}
 	
 }
