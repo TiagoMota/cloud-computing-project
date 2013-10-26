@@ -13,8 +13,9 @@ public class Assignment {
 	private int job_id;
 	private int order;
 	
+	public Assignment() {}
+	
 	public Assignment(String worker_instanceid, int job_id, int order) {
-		super();
 		this.worker_instanceid = worker_instanceid;
 		this.job_id = job_id;
 		this.order = order;
