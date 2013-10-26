@@ -24,22 +24,21 @@ import com.amazonaws.services.ec2.model.Reservation;
 public class Monitor{
 	
 	private static Monitor instance;
+	private static Logger LOG = LoggerFactory.getLogger(Monitor.class);
 	private AmazonEC2 ec2;
 	private FaultManager faultManager;
-	private FaultManagerThread faultManagerThread;
 
-	public static Logger LOG = LoggerFactory.getLogger(Monitor.class);
+
+	private Monitor(){
+		faultManager = FaultManager.getInstance();
+		initEC2Instance();
+	}
 	
 	public static Monitor getInstance(){
 		if(instance == null) { instance = new Monitor(); }
 		return instance;
 	}
 	
-	private Monitor(){
-		LOG.info("Monitor Thread started succesfully.");
-		faultManager = FaultManager.getInstance();
-		initEC2Instance();
-	}
 	
 	public Set<String> getAvailableInstancesId() {
 		Set<String> availableInstancesId = new TreeSet<String>();
@@ -95,28 +94,23 @@ public class Monitor{
 			 List<InstanceStatus> state = describeInstanceResult.getInstanceStatuses();
 
 			 for (InstanceStatus instanceStatusInfo : state){
-				 	//Retrieve machine state (running, stopped, booting)
-	            	String machineState = instanceStatusInfo.getInstanceState().getName();
-	            	
-	            	if(machineState.equalsIgnoreCase("running")) {
-	            		//Retrieve status info
-	            		String instanceStatus = instanceStatusInfo.getInstanceStatus().getStatus();
-	            		String systemStatus = instanceStatusInfo.getSystemStatus().getStatus();
-	            		
-	            		//Call Fault Manager to handle failure
-	            		if(!instanceStatus.equalsIgnoreCase("ok") || !systemStatus.equalsIgnoreCase("ok")) {
-	            			
-	            			//Run Thread that deals with the failed machine
-	            			faultManagerThread = new FaultManagerThread(faultManager, instanceStatusInfo.getInstanceId());
-	            		}	
-	            		//Check job status on running machines
-	            		else {
-	            			
-	            		}
-	            	}
-			}
-			 
-			 
+				 //Retrieve machine state (running, stopped, booting)
+				 String machineState = instanceStatusInfo.getInstanceState().getName();
+
+				 if(machineState.equalsIgnoreCase("running")) {
+					 //Retrieve status info
+					 String instanceStatus = instanceStatusInfo.getInstanceStatus().getStatus();
+					 String systemStatus = instanceStatusInfo.getSystemStatus().getStatus();
+
+					 //Call Fault Manager to handle failure
+					 if(!instanceStatus.equalsIgnoreCase("ok") || !systemStatus.equalsIgnoreCase("ok")) {
+
+						 //Run Thread that deals with the failed machine
+						 FaultManagerThread faultManagerThread = new FaultManagerThread(faultManager, instanceStatusInfo.getInstanceId());
+						 faultManagerThread.run();
+					 }	
+				 }
+			 }
 		 } catch (AmazonServiceException ase) {
 			 LOG.error("Caught Exception: " + ase.getMessage());
 			 LOG.error("Reponse Status Code: " + ase.getStatusCode());
@@ -127,6 +121,9 @@ public class Monitor{
 			
 	}
 	
+	/**
+	 * This method initializes the ec2 instance with the correct parameters.
+	 */
 	private void initEC2Instance() {
 		try {
 			//Init ec2 instance
@@ -139,17 +136,20 @@ public class Monitor{
 		}
 	}
 	
+	/**
+	 * This class is used to thread upon the discovery of a failed machine.
+	 */
 	private class FaultManagerThread extends Thread {
 		private FaultManager fm;
-		private String workerID;
+		private String instanceId;
 		
-		public FaultManagerThread (FaultManager fm, String workerID) {
+		public FaultManagerThread (FaultManager fm, String instanceId) {
 			this.fm = fm;
-			this.workerID = workerID;
+			this.instanceId = instanceId;
 		}
 		
 		public void run(){
-			fm.WorkerFailure(workerID);
+			fm.WorkerFailure(instanceId);
 		}
 	}
 	
