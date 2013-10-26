@@ -1,4 +1,4 @@
-package nl.tudelft.cloud_computing_project.database;
+package nl.tudelft.cloud_computing_project.model;
 
 import java.util.Date;
 
@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 public class Job {
 	private static Logger LOG = LoggerFactory.getLogger(Job.class);
 	
-	private int Jid; 				/* Job ID */
+	private int id; 				/* Job ID */
 	private String filename; 		/* Filename of the submission (URI) */
 	private long filesize; 			/* Filesize in bytes */
 	private int priority; 			/* Priority of the Job, higher = higher priority. 0 - 99. Default is 50. */
@@ -48,10 +48,10 @@ public class Job {
 	}
 
 	/**
-	 * @return the jid
+	 * @return The Job ID
 	 */
-	public int getJid() {
-		return Jid;
+	public int getId() {
+		return id;
 	}
 
 	/**

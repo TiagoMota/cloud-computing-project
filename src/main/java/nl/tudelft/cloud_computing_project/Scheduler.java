@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-import nl.tudelft.cloud_computing_project.database.*;
+import nl.tudelft.cloud_computing_project.model.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +139,7 @@ public class Scheduler {
 			// Assign job to worker
 			// TODO: Fix that this doesn't work if order is Integer.MAX_VALUE
 			int nextorder = worker_maxorder.get(wid)+1;
-			assignments.add(new Assignment(wid, j.getJid(), nextorder));
+			assignments.add(new Assignment(wid, j.getId(), nextorder));
 			worker_maxorder.put(wid, nextorder);
 		}
 		return assignments;

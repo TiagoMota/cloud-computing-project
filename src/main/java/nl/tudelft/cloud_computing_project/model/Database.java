@@ -1,4 +1,4 @@
-package nl.tudelft.cloud_computing_project.database;
+package nl.tudelft.cloud_computing_project.model;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
