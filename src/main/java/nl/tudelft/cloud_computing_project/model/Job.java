@@ -149,5 +149,54 @@ public class Job {
 		this.jobstatus = jobstatus;
 	}
 	
+	public static JobFactory factory() {
+		return new JobFactory();
+	}
 	
+	public static class JobFactory {
+		private final Job construct;
+		
+		public JobFactory(){
+			this.construct = new Job();
+		}
+		
+		public JobFactory setId(int id) {
+			construct.id = id;
+			return this;
+		}
+		
+		public JobFactory setFilename(String filename) {
+			construct.filename = filename;
+			return this;
+		}
+		
+		public JobFactory setFilesize(long filesize) {
+			construct.filesize = filesize;
+			return this;
+		}
+		
+		public JobFactory setPriority(int priority) {
+			construct.priority = priority;
+			return this;
+		}
+		
+		public JobFactory setNumFailures(int num_failures) {
+			construct.num_failures = num_failures;
+			return this;
+		}
+		
+		public JobFactory setSubmissionTime(Date submission_time) {
+			construct.submission_time = submission_time;
+			return this;
+		}
+		
+		public JobFactory setJobStatus(int job_status) {
+			construct.jobstatus = job_status;
+			return this;
+		}
+		
+		public Job create() {
+			return construct;
+		}
+	}
 }
