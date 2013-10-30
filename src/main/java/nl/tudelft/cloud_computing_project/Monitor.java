@@ -1,5 +1,9 @@
 package nl.tudelft.cloud_computing_project;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,10 +31,12 @@ public class Monitor{
 	private static Logger LOG = LoggerFactory.getLogger(Monitor.class);
 	private AmazonEC2 ec2;
 	private FaultManager faultManager;
+	private String masterId; 
 
 
 	private Monitor(){
 		faultManager = FaultManager.getInstance();
+		masterId = getInstanceID();
 		initEC2Instance();
 	}
 	
@@ -39,6 +45,42 @@ public class Monitor{
 		return instance;
 	}
 	
+	public int getNumAvailableInstances() {
+		int instanceNum = 0;
+		
+		try {
+			
+			//Retrieve instances (ugly but fast code!)
+			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
+            List<Reservation> reservations = describeInstancesRequest.getReservations();
+            Set<Instance> instances = new HashSet<Instance>();
+
+            for (Reservation reservation : reservations) {
+            	
+            	instances.addAll(reservation.getInstances());
+            	/**
+            	for (Instance instance : reservation.getInstances()) {
+	            	for (Tag tag : instance.getTags()){
+	            		if(tag.getKey().equals("cloudocr") && tag.getValue().equals("worker"))
+	            			instanceNum++;
+	            		break;
+	            	}
+            	}
+            	**/
+            }
+            
+            instanceNum = instances.size() - 1;
+            
+		 } catch (AmazonServiceException ase) {
+			 LOG.error("Caught Exception: " + ase.getMessage());
+			 LOG.error("Reponse Status Code: " + ase.getStatusCode());
+			 LOG.error("Error Code: " + ase.getErrorCode());
+			 LOG.error("Request ID: " + ase.getRequestId());
+		 }
+		
+		 return instanceNum;
+		
+	}
 	
 	public Set<String> getAvailableInstancesId() {
 		Set<String> availableInstancesId = new TreeSet<String>();
@@ -59,7 +101,9 @@ public class Monitor{
 
 					 //Call Fault Manager to handle failure
 					 if(instanceStatus.equalsIgnoreCase("ok") && systemStatus.equalsIgnoreCase("ok")) {
-						 availableInstancesId.add(instanceStatusInfo.getInstanceId());
+						 String instanceId = instanceStatusInfo.getInstanceId();
+						 if (!(instanceId.equals(this.masterId)))
+							 availableInstancesId.add(instanceStatusInfo.getInstanceId());
 					 }	
 				 }
 			 }
@@ -134,6 +178,34 @@ public class Monitor{
 		catch (Exception e) {
 			LOG.error(e.getMessage());
 		}
+	}
+	
+	private String getInstanceID() {
+		String url = "http://169.254.169.254/latest/meta-data/instance-id";
+		StringBuffer response = new StringBuffer();
+		URL obj;
+		
+		try {
+			obj = new URL(url);
+		 
+			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+			con.setRequestMethod("GET");
+	
+			BufferedReader in = new BufferedReader(
+					new InputStreamReader(con.getInputStream()));
+			String inputLine;
+			
+	
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+			
+		} catch (Exception e) {
+			LOG.error("Error instantiating ProvvisioningPolicy class:\n" + e.getMessage());
+		}
+
+		return response.toString();
 	}
 	
 	/**
