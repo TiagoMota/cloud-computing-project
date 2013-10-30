@@ -138,9 +138,7 @@ public class RealWorker {
 		return timeout;
 	}
 
-
-
-
+	
 	//******** Worker Logic ***********
 
 	/**
@@ -157,13 +155,7 @@ public class RealWorker {
 	 */
 	private void executeJobs() throws Exception{
 		for(Job j: jobs){
-			/*if(j.getFilesize() > 1654036){
-				LOG.error("Assigned job with id " + j.getId() + " bigger then allowed. Deleting assignment...");
-				updateJobNumOfFailures(j.getId());
-				deleteAssignment(j.getId());
-			}*/
 			String wgetCommand = "wget -q " + j.getFilename() + " -O img.jpg";
-			// Execute UNIX command  
 			Process p1, p2;
 			ProcessThread pt1, pt2 = null;
 			try {
