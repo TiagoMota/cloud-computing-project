@@ -25,13 +25,12 @@ public class FaultManager {
 	private final String manage_failing_jobs_sql	 		= "UPDATE Job "
 															+ "SET jobstatus = 3"
 															+ "WHERE num_failures > :MAX_NUM_FAILURE ";
-								
-	// TODO: Can be made configurable
-	private final int MAX_NUM_FAILURE = 10;
+							
 	
-	private static AmazonEC2 	ec2;
-	private static FaultManager	instance;
+	private final int MAX_NUM_FAILURE = Integer.parseInt((String)CloudOCR.Configuration.get("MAX_NUM_FAILURE"));
 	private static Logger LOG = LoggerFactory.getLogger(FaultManager.class);
+	private static FaultManager	instance;
+	private AmazonEC2 	ec2;
 	private Sql2o sql2o;
 	
 	
