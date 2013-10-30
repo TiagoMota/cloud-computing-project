@@ -104,7 +104,7 @@ public class CloudOCR {
 		Properties properties = new Properties();
 
 		try {
-			properties.load(new FileInputStream("/Users/Eddy/Desktop/CloudOCR.properties"));
+			properties.load(new FileInputStream(System.getProperty("user.dir") + "/CloudOCR.properties"));
 		
 			for(String key : properties.stringPropertyNames()) {
 				String value = properties.getProperty(key);
