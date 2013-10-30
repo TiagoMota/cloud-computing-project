@@ -24,6 +24,7 @@ import org.sql2o.data.Table;
 public class Scheduler {
 	private static final Logger LOG = LoggerFactory.getLogger(Scheduler.class);
 	
+	// TODO: get only x*n jobs
 	private final String jobqueue_sql = 
 		"SELECT id, filesize" +
 		" FROM Job " +
@@ -37,7 +38,7 @@ public class Scheduler {
 			+ " JOIN Job On Job.id = Assignment.job_id"
 			+ " GROUP BY Assignment.worker_instanceid";
 
-	private final String assign_sql = "INSERT INTO Assignment(job_id, worker_instanceid, order)" +
+	private final String assign_sql = "INSERT INTO Assignment(job_id, worker_instanceid, `order`) " +
 						"VALUES (:job_id, :worker_instanceid, :order)";
 	
 	private Sql2o sql2o;
@@ -54,6 +55,12 @@ public class Scheduler {
 		
 		public Worker(final String instance_id) {
 			this.instance_id = instance_id;
+		}
+		
+		public Worker(final String instance_id, long load, int maxorder) {
+			this.instance_id = instance_id;
+			this.load = load;
+			this.maxorder = maxorder;
 		}
 
 		@Override
@@ -100,14 +107,14 @@ public class Scheduler {
 	private void pullWorkerInfo() {
 		// We could actually change the query to only fetch info of the workers we're intered in
 		// But this is only small overhead and much easier coding
-		List<Worker> workersinfo =
-				sql2o
-				.createQuery(worker_load_sql, "workers_sql")
-				.addColumnMapping("worker_load", "load")
-				.executeAndFetch(Worker.class);
-		Map<String, Worker> workersinfomap = new HashMap<String, Worker>((int)(workersinfo.size()*1.5));
-		for(Worker w : workersinfo) {
-			workersinfomap.put(w.instance_id, w);
+		//List<Worker> workersinfo = sql2o.createQuery(worker_load_sql, "workers_sql").addColumnMapping("worker_load", "load").executeAndFetch(Worker.class);
+		Table t = sql2o.createQuery(worker_load_sql, "workers_sql").executeAndFetchTable();
+		Map<String, Worker> workersinfomap = new HashMap<String, Worker>((int)(t.rows().size()*1.5));
+		for(Row r : t.rows()) {
+			workersinfomap.put(
+					r.getString("instance_id"),
+					new Worker(r.getString("instance_id"), r.getLong("worker_load"), r.getInteger("maxorder"))
+				);
 		}
 		
 		// Get the available workers
