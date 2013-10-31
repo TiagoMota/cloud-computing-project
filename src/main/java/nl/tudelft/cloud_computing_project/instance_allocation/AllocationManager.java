@@ -63,7 +63,7 @@ public class AllocationManager {
 		
 		LOG.info("Applying provisioning policy");
 		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
-		LOG.info(provisioningPolicyResult + " instances will be un/allocated");
+		LOG.info(provisioningPolicyResult + " instances will be " + (provisioningPolicyResult > 0? "un" : "") + "allocated");
 
 		
 		// INSTANCE ALLOCATION 
