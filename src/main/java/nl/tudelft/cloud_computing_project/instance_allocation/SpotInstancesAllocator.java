@@ -125,21 +125,15 @@ public class SpotInstancesAllocator {
 
 	private void tagInstances() {
 		// Tag the created instances
-		ArrayList<Tag> instanceTags = new ArrayList<Tag>();
-		instanceTags.add(new Tag("cloudocr","spotinstance"));
+		Tag tag = new Tag("cloudocr", "worker");
+		
+		for (String instanceId : instanceIds) {
+			
+			CreateTagsRequest createTagsRequest = new CreateTagsRequest();
+			createTagsRequest.withResources(instanceId).withTags(tag);
+			
+			ec2.createTags(createTagsRequest);
 
-		CreateTagsRequest createTagsRequest_instances = new CreateTagsRequest();
-		createTagsRequest_instances.setResources(instanceIds);
-		createTagsRequest_instances.setTags(instanceTags);
-
-		try {
-			ec2.createTags(createTagsRequest_instances);
-		} catch (AmazonServiceException e) {
-			LOG.warn("Error tagging instances");
-			LOG.warn("Caught Exception: " + e.getMessage());
-			LOG.warn("Reponse Status Code: " + e.getStatusCode());
-			LOG.warn("Error Code: " + e.getErrorCode());
-			LOG.warn("Request ID: " + e.getRequestId());
 		}
 	}
 

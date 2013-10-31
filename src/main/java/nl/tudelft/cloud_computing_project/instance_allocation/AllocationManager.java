@@ -139,8 +139,8 @@ public class AllocationManager {
 			
 		}
 		else {
-			//Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
-			//SpotInstancesThread.start();
+			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
+			SpotInstancesThread.start();
 		}
 		
 	}
@@ -215,10 +215,20 @@ public class AllocationManager {
 			//Decide which instances to terminate
 			for (Instance instance : instances) {
 				
-				//Only deallocates spot Instances
-				if (!instance.getTags().contains(new Tag("cloudocr", "spotinstance")) && !onlySpotInstances)
-					if (instance.getTags().contains(new Tag("cloudocr", "master")) || !instance.getTags().contains(new Tag("cloudocr")))
-						continue;
+				//Continue if: a non cloudOCR instance is being analyzed
+				if(!instance.getTags().contains(new Tag("cloudocr"))) {
+					continue;
+				} else {
+					//If onlySpotInstances is true then deallocate ONLY Spot Instances
+					if (onlySpotInstances) {
+						if (!instance.getTags().contains(new Tag("cloudocr", "spotinstance")))
+							continue;
+					//Else deallocate it unless its the Master
+					} else {
+						if (instance.getTags().contains(new Tag("cloudocr", "master")))
+							continue;
+					}
+				}
 				
 				//Retrieves the launchTime of the instance
 				launchTime = instance.getLaunchTime();
