@@ -69,7 +69,7 @@ public class AllocationManager {
 		
 		LOG.info("Applying provisioning policy");
 		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
-		LOG.info(provisioningPolicyResult + " instances will be " + (provisioningPolicyResult < 0? "un" : "") + "allocated");
+		LOG.info(Math.abs(provisioningPolicyResult) + " instances will be " + (provisioningPolicyResult < 0? "un" : "") + "allocated");
 
 		
 		// INSTANCE ALLOCATION 
@@ -89,10 +89,22 @@ public class AllocationManager {
 	private void allocateMachines(int instancesToAllocate) {
 		
 		int normalInstancesRunning = Monitor.getInstance().getNumRunningNormalInstances();
+		int maxAllocatableInstances;
+		int allocatedNormalInstances;
+		
 		if (normalInstancesRunning < MAX_NORMAL_INSTANCES){
-			int allocatedNormalInstances = allocateNormalInstances(MAX_NORMAL_INSTANCES - normalInstancesRunning);
+			
+			maxAllocatableInstances = MAX_NORMAL_INSTANCES - normalInstancesRunning;
+			
+			if(maxAllocatableInstances < instancesToAllocate)
+				allocatedNormalInstances = allocateNormalInstances(maxAllocatableInstances);
+			else 
+				allocatedNormalInstances = allocateNormalInstances(instancesToAllocate);
+
 			instancesToAllocate -= (allocatedNormalInstances);
+			
 			LOG.info("Allocated " + allocatedNormalInstances + " default instances");
+			
 		}
 		else {
 			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);

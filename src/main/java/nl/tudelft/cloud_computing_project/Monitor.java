@@ -109,7 +109,7 @@ public class Monitor{
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
 					for (Tag tag : instance.getTags()){
-						if(tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance"))) {
+						if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance")))) {
 							availableInstancesId.remove(instance.getInstanceId());
 							break;
 						}
