@@ -19,7 +19,7 @@ public class SetupTestDB {
 	
 	private final String insertTemplate = "INSERT INTO "
 			+ "Job (filename, filesize, priority, num_failures, submission_time, jobstatus) "
-			+ "VALUES ('http://example.org/some/file.jpg', 50, 0, '2013-01-01 01:02:03', 1)"
+			+ "VALUES ('http://example.org/some/file.jpg', 1000, 50, 0, '2013-01-01 01:02:03', 1);"
 			+ LINESEP;
 	
 	public void run(int datasetsize, String outputfile) throws IOException {
@@ -60,12 +60,9 @@ public class SetupTestDB {
 		System.out.println("Number of jobs to generate:");
 		Scanner s = new Scanner(System.in);
 		int datasetsize = s.nextInt();
-		s.nextLine();
-		System.out.println("Output file:");
-		String outputfile = s.nextLine();
 		s.close();
 		
-		(new SetupTestDB()).run(datasetsize, outputfile);
+		(new SetupTestDB()).run(datasetsize, System.getProperty("user.dir") + "/src/main/java/nl/tudelft/cloud_computing_project/experimental/dbbenchmarks/" + datasetsize + ".sql");
 		
 		System.out.println("Done!");
 	}
