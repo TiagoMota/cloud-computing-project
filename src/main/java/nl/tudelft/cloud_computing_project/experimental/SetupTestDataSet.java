@@ -20,7 +20,7 @@ public class SetupTestDataSet {
 	private static final Date submissionTime = new Date();
 	
 	private static Job[] testjobs = new Job[] {
-			Job.factory()
+			/*Job.factory()
 			.setFilename("https://s3-eu-west-1.amazonaws.com/cloudocr-test/input/file1m.jpg")
 			.setFilesize(1880893)
 			.setPriority(50)
@@ -53,6 +53,12 @@ public class SetupTestDataSet {
 			Job.factory()
 			.setFilename("https://s3-eu-west-1.amazonaws.com/cloudocr-test/input/file2s.jpg")
 			.setFilesize(100188)
+			.setPriority(50)
+			.setSubmissionTime(submissionTime)
+			.create()*/
+			Job.factory()
+			.setFilename("https://s3-eu-west-1.amazonaws.com/cloudocr-test/input/standardfile.jpg")
+			.setFilesize(456894)
 			.setPriority(50)
 			.setSubmissionTime(submissionTime)
 			.create()
