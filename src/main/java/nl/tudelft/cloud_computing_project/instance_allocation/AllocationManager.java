@@ -43,13 +43,13 @@ public class AllocationManager {
 	private static AllocationManager instance;
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
 	private Sql2o sql2o;
-	private ProvisioningPolicyInterface provvisioningPolicy;
+	private ProvisioningPolicyInterface provisioningPolicy;
 
 	private AllocationManager(){
 		try {
-			 provvisioningPolicy = (ProvisioningPolicyInterface) Class.forName(PROVVISIONING_POLICY_CLASS).newInstance();
+			 provisioningPolicy = (ProvisioningPolicyInterface) Class.forName(PROVVISIONING_POLICY_CLASS).newInstance();
 		} catch (Exception e) {
-			LOG.error("Error instantiating ProvvisioningPolicy class:\n" + e.getMessage());
+			LOG.error("Error instantiating ProvisioningPolicy class:\n" + e.getMessage());
 		}
 	}
 	
@@ -61,7 +61,10 @@ public class AllocationManager {
 	
 	public void applyProvvisioningPolicy() {
 		
-		int provisioningPolicyResult = provvisioningPolicy.applyProvisioningPolicy();
+		LOG.info("Applying provisioning policy");
+		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
+		LOG.info(provisioningPolicyResult + " instances will be (un)allocated");
+
 		
 		// INSTANCE ALLOCATION 
 		if(provisioningPolicyResult > 0)
@@ -83,6 +86,7 @@ public class AllocationManager {
 		if (normalInstancesRunning < MAX_NORMAL_INSTANCES){
 			int allocatedNormalInstances = allocateNormalInstances(MAX_NORMAL_INSTANCES - normalInstancesRunning);
 			instancesToAllocate -= (allocatedNormalInstances);
+			LOG.info("Allocated " + allocatedNormalInstances + " default instances");
 		}
 		else {
 			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
@@ -213,7 +217,9 @@ public class AllocationManager {
 		if (terminatedInstancesCount < instancesToTerminateNum)
 			return deallocateMachines(instancesToTerminateNum - terminatedInstancesCount, false);
 		
+		LOG.info("Deallocated " + terminatedInstancesCount + " default instances");
 		return terminatedInstancesCount;
+
 
 	}
 	
