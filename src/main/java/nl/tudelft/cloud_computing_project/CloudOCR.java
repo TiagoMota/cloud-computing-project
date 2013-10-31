@@ -108,7 +108,7 @@ public class CloudOCR {
 		
 			for(String key : properties.stringPropertyNames()) {
 				String value = properties.getProperty(key);
-				LOG.info(key + " => " + value);
+				LOG.debug(key + " => " + value);
 			}
 			
 		} catch (IOException e) {
