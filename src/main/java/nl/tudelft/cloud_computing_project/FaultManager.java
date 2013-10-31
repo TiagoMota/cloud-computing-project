@@ -14,19 +14,18 @@ import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 public class FaultManager {
 
 	private final String delete_instance_assignment_sql 	
-			= "DELETE * "
-			+ "FROM Assignment "
+			= "DELETE FROM Assignment "
 			+ "WHERE worker_instanceid = :instanceId";
 
 	private final String update_job_num_failures_sql 		
 			= "UPDATE Job "
-			+ "JOIN Assignment ON Assignment.job_id = Job.id"
-			+ "SET num_failures = num_failures + 1"
+			+ "JOIN Assignment ON Assignment.job_id = Job.id "
+			+ "SET num_failures = num_failures + 1 "
 			+ "WHERE Assignment.worker_instanceid = :instanceId";
 
 	private final String manage_failing_jobs_sql	 		
 			= "UPDATE Job "
-			+ "SET jobstatus = 3"
+			+ "SET jobstatus = 3 "
 			+ "WHERE num_failures > :MAX_NUM_FAILURE ";
 							
 	

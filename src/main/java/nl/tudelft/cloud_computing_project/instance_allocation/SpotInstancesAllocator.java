@@ -27,7 +27,8 @@ import com.amazonaws.services.ec2.model.Tag;
 public class SpotInstancesAllocator {
 
 	private static final String SPOT_PRICE = (String)CloudOCR.Configuration.get("SPOT_PRICE");
-	private static Logger LOG = LoggerFactory.getLogger(FaultManager.class);
+	private static final String WORKER_SCRIPT = "#!/bin/bash java -jar /home/ubuntu/Worker/worker.jar exit 0";
+	private static Logger LOG = LoggerFactory.getLogger(SpotInstancesAllocator.class);
 	private static SpotInstancesAllocator instance;
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
 	private ArrayList<String> instanceIds;
@@ -49,8 +50,9 @@ public class SpotInstancesAllocator {
 		requestRequest.setSpotPrice(SPOT_PRICE);
 		requestRequest.setInstanceCount(instancesToAllocate);
 		LaunchSpecification launchSpecification = new LaunchSpecification();
-		launchSpecification.setImageId("ami-f720c380");
+		launchSpecification.setImageId("ami-7738db00");
 		launchSpecification.setInstanceType("t1.micro");
+		launchSpecification.setUserData(WORKER_SCRIPT);
 		ArrayList<String> securityGroups = new ArrayList<String>();
 		securityGroups.add("cloudocr-worker");
 		launchSpecification.setSecurityGroups(securityGroups);

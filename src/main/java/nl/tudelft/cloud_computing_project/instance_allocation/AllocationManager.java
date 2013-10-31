@@ -37,9 +37,9 @@ public class AllocationManager {
 			+ "FROM Assignment "
 			+ "WHERE worker_instanceid = :instanceId";
 	
-	private static final String PROVVISIONING_POLICY_CLASS = (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
+	private static final String PROVISIONING_POLICY_CLASS = (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
 	private static final int MAX_NORMAL_INSTANCES = Integer.parseInt((String)CloudOCR.Configuration.get("MAX_NORMAL_INSTANCES"));
-	private static Logger LOG = LoggerFactory.getLogger(FaultManager.class);
+	private static Logger LOG = LoggerFactory.getLogger(AllocationManager.class);
 	private static AllocationManager instance;
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
 	private Sql2o sql2o;
@@ -47,7 +47,7 @@ public class AllocationManager {
 
 	private AllocationManager(){
 		try {
-			 provisioningPolicy = (ProvisioningPolicyInterface) Class.forName(PROVVISIONING_POLICY_CLASS).newInstance();
+			 provisioningPolicy = (ProvisioningPolicyInterface) Class.forName("nl.tudelft.cloud_computing_project.instance_allocation." + PROVISIONING_POLICY_CLASS).newInstance();
 		} catch (Exception e) {
 			LOG.error("Error instantiating ProvisioningPolicy class:\n" + e.getMessage());
 		}
@@ -63,7 +63,7 @@ public class AllocationManager {
 		
 		LOG.info("Applying provisioning policy");
 		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
-		LOG.info(provisioningPolicyResult + " instances will be (un)allocated");
+		LOG.info(provisioningPolicyResult + " instances will be un/allocated");
 
 		
 		// INSTANCE ALLOCATION 

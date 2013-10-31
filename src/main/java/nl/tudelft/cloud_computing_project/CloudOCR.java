@@ -45,7 +45,7 @@ public class CloudOCR {
 			}
 		};
 		// Start the scheduler
-		SchedulerThread.run();
+		SchedulerThread.start();
 		
 		// Thread that runs the Monitor
 		MonitorThread = new Thread() {
@@ -63,7 +63,7 @@ public class CloudOCR {
 			}
 		};
 		// Start the Monitor
-		MonitorThread.run();
+		MonitorThread.start();
 		
 		// Thread that runs the FaultManager
 		FaultManagerThread = new Thread() {
@@ -81,7 +81,7 @@ public class CloudOCR {
 			}
 		};
 		// Start the Fault Manager
-		FaultManagerThread.run();
+		FaultManagerThread.start();
 		
 		// Thread that runs the AllocationManager
 		AllocationManagerThread = new Thread() {
@@ -99,7 +99,7 @@ public class CloudOCR {
 			}
 		};
 		// Start the Allocation Manager
-		AllocationManagerThread.run();
+		AllocationManagerThread.start();
 	}
 
 	private static Properties loadProperties() {
