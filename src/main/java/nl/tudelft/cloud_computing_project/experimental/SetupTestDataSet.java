@@ -83,7 +83,6 @@ public class SetupTestDataSet {
 		Connection c = Database.getConnection().beginTransaction();
 		Database.getConnection().runInTransaction(new StatementRunnable() {
 			
-			@Override
 			public void run(Connection connection, Object datasetsize) throws Throwable {
 				Query q = connection.createQuery(insertjobquery);
 				
