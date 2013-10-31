@@ -104,9 +104,7 @@ public class Monitor{
 					String systemStatus = instanceStatusInfo.getSystemStatus().getStatus();
 
 					if(instanceStatus.equalsIgnoreCase("ok") && systemStatus.equalsIgnoreCase("ok")) {
-						String instanceId = instanceStatusInfo.getInstanceId();
-						if (!(instanceId.equals(this.masterId)))
-							availableInstancesId.add(instanceStatusInfo.getInstanceId());
+						availableInstancesId.add(instanceStatusInfo.getInstanceId());
 					}	
 				}
 			}
