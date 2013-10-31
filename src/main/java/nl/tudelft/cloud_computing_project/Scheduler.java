@@ -30,7 +30,8 @@ public class Scheduler {
 		" FROM Job " +
 		" WHERE jobstatus = " + Job.JobStatus.SUBMITTED.code +
 		" AND id NOT IN (SELECT job_id FROM Assignment)" +
-		" ORDER BY priority, submission_time";
+		" ORDER BY priority, submission_time" +
+		" LIMIT :limit";
 	
 	private final String worker_load_sql =
 			  "SELECT worker_instanceid AS instance_id, COALESCE(MAX(Assignment.order), 0) AS maxorder, SUM(COALESCE(Job.filesize, 0)) AS worker_load"
@@ -96,9 +97,15 @@ public class Scheduler {
 	 * Get the current jobs to be scheduled
 	 */
 	private void pullJobQueue(){
-		// TODO: Add some limit or change method so it won't hog up all memory if the number of jobs is large. E.g. iterate ResultSet manually
+		// TODO: Make max number of jobs per worker configurable
 		// query database for the jobs order by priority and submission time.
-		jobs = sql2o.createQuery(jobqueue_sql, "jobqueue_sql").executeAndFetch(Job.class);		
+		LOG.debug("Fetching jobs");
+		List<Job> jobs = sql2o
+				.createQuery(jobqueue_sql, "jobqueue_sql")
+				.addParameter("limit", 10 * (workers.size()+1))
+				.executeAndFetch(Job.class);
+		this.jobs = jobs;
+		LOG.debug(String.format("Fetched %d jobs", jobs.size()));
 	}
 	
 	/**
@@ -214,8 +221,8 @@ public class Scheduler {
 		LOG.info("Starting scheduler");
 		
 		sql2o = Database.getConnection();	
-		pullJobQueue();
 		pullWorkerInfo();
+		pullJobQueue();
 		
 		Collection<Assignment> assignments = schedule_greedy_lb();
 		
