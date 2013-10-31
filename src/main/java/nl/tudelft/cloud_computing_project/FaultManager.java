@@ -8,29 +8,33 @@ import org.sql2o.Sql2o;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.model.StopInstancesRequest;
-import com.amazonaws.services.ec2.model.StopInstancesResult;
+import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 
 public class FaultManager {
-	
-	private final String delete_instance_assignment_sql 	= "DELETE * "
-															+ "FROM Assignment "
-															+ "WHERE worker_instanceid = :instanceId";
-													
-	private final String update_job_num_failures_sql 		= "UPDATE Job "
-															+ "JOIN Assignment ON Assignment.job_id = Job.id"
-															+ "SET num_failures = num_failures + 1"
-															+ "WHERE Assignment.worker_instanceid = :instanceId";
-													
-	private final String manage_failing_jobs_sql	 		= "UPDATE Job "
-															+ "SET jobstatus = 3"
-															+ "WHERE num_failures > :MAX_NUM_FAILURE ";
+
+	private final String delete_instance_assignment_sql 	
+			= "DELETE * "
+			+ "FROM Assignment "
+			+ "WHERE worker_instanceid = :instanceId";
+
+	private final String update_job_num_failures_sql 		
+			= "UPDATE Job "
+			+ "JOIN Assignment ON Assignment.job_id = Job.id"
+			+ "SET num_failures = num_failures + 1"
+			+ "WHERE Assignment.worker_instanceid = :instanceId";
+
+	private final String manage_failing_jobs_sql	 		
+			= "UPDATE Job "
+			+ "SET jobstatus = 3"
+			+ "WHERE num_failures > :MAX_NUM_FAILURE ";
 							
 	
 	private final int MAX_NUM_FAILURE = Integer.parseInt((String)CloudOCR.Configuration.get("MAX_NUM_FAILURE"));
+	
 	private static Logger LOG = LoggerFactory.getLogger(FaultManager.class);
 	private static FaultManager	instance;
-	private AmazonEC2 	ec2;
+	private AmazonEC2 	ec2 = AmazonEC2Initializer.getInstance();
 	private Sql2o sql2o;
 	
 	
@@ -48,10 +52,10 @@ public class FaultManager {
 	public void WorkerFailure(String instanceId){
 		try {
 			
-			//Stops the failing machine and logs the information
-			StopInstancesRequest stopRequest = new StopInstancesRequest().withInstanceIds(instanceId);
-			StopInstancesResult stopResult = ec2.stopInstances(stopRequest);
-			LOG.warn("Detected Failing Machine: " + stopResult.toString());
+			//Terminates the failing machine and logs the information
+			TerminateInstancesRequest terminateRequest = new TerminateInstancesRequest().withInstanceIds(instanceId);
+			TerminateInstancesResult terminateResult = ec2.terminateInstances(terminateRequest);
+			LOG.warn("Detected Failing Machine: " + terminateResult.toString());
 			
 			sql2o = Database.getConnection();
 			
