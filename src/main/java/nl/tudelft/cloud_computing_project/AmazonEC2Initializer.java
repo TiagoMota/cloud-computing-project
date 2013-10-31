@@ -12,6 +12,7 @@ public class AmazonEC2Initializer {
 	
 	private static AmazonEC2 ec2;
 	private static Logger LOG = LoggerFactory.getLogger(Monitor.class);
+	private static final String AWS_ENDPOINT = (String) CloudOCR.Configuration.get("AWS_ENDPOINT");
 
 	
 	public static AmazonEC2 getInstance() {
@@ -29,7 +30,7 @@ public class AmazonEC2Initializer {
 			//Init ec2 instance
 			AWSCredentialsProvider credentialsProvider = new ClasspathPropertiesFileCredentialsProvider();
 			ec2 = new AmazonEC2Client(credentialsProvider);
-			ec2.setEndpoint("ec2.eu-west-1.amazonaws.com");
+			ec2.setEndpoint(AWS_ENDPOINT);
 		}
 		catch (Exception e) {
 			LOG.error(e.getMessage());
