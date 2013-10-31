@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+import nl.tudelft.cloud_computing_project.instance_allocation.AllocationManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

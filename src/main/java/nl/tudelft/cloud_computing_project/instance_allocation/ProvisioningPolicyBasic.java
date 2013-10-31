@@ -1,8 +1,10 @@
-package nl.tudelft.cloud_computing_project;
+package nl.tudelft.cloud_computing_project.instance_allocation;
 
 
 import java.util.List;
 
+import nl.tudelft.cloud_computing_project.CloudOCR;
+import nl.tudelft.cloud_computing_project.Monitor;
 import nl.tudelft.cloud_computing_project.model.Database;
 
 import org.sql2o.Sql2o;

@@ -1,7 +1,11 @@
-package nl.tudelft.cloud_computing_project;
+package nl.tudelft.cloud_computing_project.instance_allocation;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import nl.tudelft.cloud_computing_project.AmazonEC2Initializer;
+import nl.tudelft.cloud_computing_project.CloudOCR;
+import nl.tudelft.cloud_computing_project.FaultManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

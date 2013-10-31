@@ -1,4 +1,4 @@
-package nl.tudelft.cloud_computing_project;
+package nl.tudelft.cloud_computing_project.instance_allocation;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
+import nl.tudelft.cloud_computing_project.AmazonEC2Initializer;
+import nl.tudelft.cloud_computing_project.CloudOCR;
+import nl.tudelft.cloud_computing_project.FaultManager;
+import nl.tudelft.cloud_computing_project.Monitor;
 import nl.tudelft.cloud_computing_project.model.Database;
 
 import org.slf4j.Logger;
