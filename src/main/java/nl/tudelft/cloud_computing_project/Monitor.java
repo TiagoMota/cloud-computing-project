@@ -32,12 +32,10 @@ public class Monitor{
 	private static Logger LOG = LoggerFactory.getLogger(Monitor.class);
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
 	private FaultManager faultManager;
-	private String masterId; 
 
 
 	private Monitor(){
 		faultManager = FaultManager.getInstance();
-		masterId = getInstanceID();
 		initEC2Instance();
 	}
 
@@ -185,7 +183,9 @@ public class Monitor{
 			LOG.error(e.getMessage());
 		}
 	}
-
+	
+	
+	/** USELESS
 	private String getInstanceID() {
 		String url = "http://169.254.169.254/latest/meta-data/instance-id";
 		StringBuffer response = new StringBuffer();
@@ -213,7 +213,8 @@ public class Monitor{
 
 		return response.toString();
 	}
-
+	*/
+	
 	/**
 	 * This class is used to thread upon the discovery of a failed machine.
 	 */
