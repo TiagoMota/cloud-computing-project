@@ -40,8 +40,7 @@ import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 public class AllocationManager {
 	
 	private final String delete_instance_assignment_sql 	
-			= "DELETE * "
-			+ "FROM Assignment "
+			= "DELETE FROM Assignment "
 			+ "WHERE worker_instanceid = :instanceId";
 	
 	private static final String PROVISIONING_POLICY_CLASS = (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
