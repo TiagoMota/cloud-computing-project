@@ -150,10 +150,10 @@ public class Monitor{
 
 					//Call Fault Manager to handle failure
 					if(!instanceStatus.equalsIgnoreCase("ok") || !systemStatus.equalsIgnoreCase("ok")) {
-
+						LOG.info("Found a failing machine: " + instanceStatusInfo.getInstanceId());
 						//Run Thread that deals with the failed machine
 						FaultManagerThread faultManagerThread = new FaultManagerThread(faultManager, instanceStatusInfo.getInstanceId());
-						faultManagerThread.run();
+						faultManagerThread.start();
 					}	
 				}
 			}

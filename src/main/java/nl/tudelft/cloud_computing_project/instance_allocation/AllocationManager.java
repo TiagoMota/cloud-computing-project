@@ -10,20 +10,24 @@ import java.util.TreeMap;
 
 import nl.tudelft.cloud_computing_project.AmazonEC2Initializer;
 import nl.tudelft.cloud_computing_project.CloudOCR;
-import nl.tudelft.cloud_computing_project.FaultManager;
 import nl.tudelft.cloud_computing_project.Monitor;
 import nl.tudelft.cloud_computing_project.model.Database;
 
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sql2o.Sql2o;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
+import com.amazonaws.services.ec2.model.LaunchSpecification;
 import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.RunInstancesRequest;
+import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StartInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
@@ -39,6 +43,8 @@ public class AllocationManager {
 	
 	private static final String PROVISIONING_POLICY_CLASS = (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
 	private static final int MAX_NORMAL_INSTANCES = Integer.parseInt((String)CloudOCR.Configuration.get("MAX_NORMAL_INSTANCES"));
+	private static Base64 base64 = new Base64();
+	private static String WORKER_SCRIPT = new String(base64.encode("#!/bin/bash\njava -jar /home/ubuntu/Worker/worker.jar\nexit 0".getBytes()));
 	private static Logger LOG = LoggerFactory.getLogger(AllocationManager.class);
 	private static AllocationManager instance;
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
@@ -63,7 +69,7 @@ public class AllocationManager {
 		
 		LOG.info("Applying provisioning policy");
 		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
-		LOG.info(provisioningPolicyResult + " instances will be " + (provisioningPolicyResult > 0? "un" : "") + "allocated");
+		LOG.info(provisioningPolicyResult + " instances will be " + (provisioningPolicyResult < 0? "un" : "") + "allocated");
 
 		
 		// INSTANCE ALLOCATION 
@@ -90,7 +96,7 @@ public class AllocationManager {
 		}
 		else {
 			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
-			SpotInstancesThread.run();
+			SpotInstancesThread.start();
 		}
 		
 	}
@@ -99,17 +105,34 @@ public class AllocationManager {
 		int startedInstances = 0;
 		
 		try {
+			
 			for (startedInstances = 0; startedInstances < instancesToAllocate; startedInstances++) {
-				StartInstancesRequest startRequest = new StartInstancesRequest();
-			    StartInstancesResult startResult = ec2.startInstances(startRequest);
-			    List<InstanceStateChange> stateChangeList = startResult.getStartingInstances();
-			    
-			    for (InstanceStateChange instanceStateChange : stateChangeList) {
-			    	LOG.info("Starting instance '" + instanceStateChange.getInstanceId() + "':");
-			    }
+
+				// CREATE EC2 INSTANCES
+				RunInstancesRequest runInstancesRequest = new RunInstancesRequest()
+					.withInstanceType("t1.micro")
+					.withImageId("ami-7738db00")
+					.withMinCount(1)
+					.withMaxCount(1)
+					.withSecurityGroupIds("cloudocr-worker")
+					.withUserData(WORKER_SCRIPT);
+
+				RunInstancesResult runInstances = ec2.runInstances(runInstancesRequest);
+
+				// TAG EC2 INSTANCES
+				List<Instance> instances = runInstances.getReservation().getInstances();
+				for (Instance instance : instances) {
+					
+					CreateTagsRequest createTagsRequest = new CreateTagsRequest();
+					createTagsRequest.withResources(instance.getInstanceId()).withTags(new Tag("cloudocr", "worker"));
+					
+					ec2.createTags(createTagsRequest);
+			    	LOG.info("Starting instance '" + instance.getInstanceId() + "':");
+				}
+
 			}
 		} catch (AmazonServiceException ase) {
-			LOG.error("Caught Exception: " + ase.getMessage());
+			LOG.error("Caught Exception while allocating instance(s): " + ase.getMessage());
 			LOG.error("Reponse Status Code: " + ase.getStatusCode());
 			LOG.error("Error Code: " + ase.getErrorCode());
 			LOG.error("Request ID: " + ase.getRequestId());
@@ -147,8 +170,8 @@ public class AllocationManager {
 			for (Instance instance : instances) {
 				
 				//Only deallocates spot Instances
-				if (!instance.getTags().contains(new Tag("cloudocr", "spotinstance")))
-					if (onlySpotInstances || instance.getTags().contains(new Tag("cloudocr", "master")))
+				if (!instance.getTags().contains(new Tag("cloudocr", "spotinstance")) && !onlySpotInstances)
+					if (instance.getTags().contains(new Tag("cloudocr", "master")) || !instance.getTags().contains(new Tag("cloudocr")))
 						continue;
 				
 				//Retrieves the launchTime of the instance
@@ -214,10 +237,11 @@ public class AllocationManager {
 			LOG.error("Request ID: " + ase.getRequestId());
 		}
 		
-		if (terminatedInstancesCount < instancesToTerminateNum)
+		if (terminatedInstancesCount < instancesToTerminateNum) {
+			LOG.info("Terminated " + terminatedInstancesCount + " spot instances, proceeding to terminate " + (instancesToTerminateNum - terminatedInstancesCount) + " default instance(s)");
 			return deallocateMachines(instancesToTerminateNum - terminatedInstancesCount, false);
-		
-		LOG.info("Deallocated " + terminatedInstancesCount + " default instances");
+		}
+		LOG.info("Terminated " + terminatedInstancesCount + " default instances");
 		return terminatedInstancesCount;
 
 

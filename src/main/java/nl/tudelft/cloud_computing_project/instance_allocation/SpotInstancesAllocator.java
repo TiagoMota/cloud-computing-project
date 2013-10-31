@@ -5,8 +5,8 @@ import java.util.List;
 
 import nl.tudelft.cloud_computing_project.AmazonEC2Initializer;
 import nl.tudelft.cloud_computing_project.CloudOCR;
-import nl.tudelft.cloud_computing_project.FaultManager;
 
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,8 @@ import com.amazonaws.services.ec2.model.Tag;
 public class SpotInstancesAllocator {
 
 	private static final String SPOT_PRICE = (String)CloudOCR.Configuration.get("SPOT_PRICE");
-	private static final String WORKER_SCRIPT = "#!/bin/bash java -jar /home/ubuntu/Worker/worker.jar exit 0";
+	private static Base64 base64 = new Base64();
+	private static String WORKER_SCRIPT = new String(base64.encode("#!/bin/bash\njava -jar /home/ubuntu/Worker/worker.jar\nexit 0".getBytes()));
 	private static Logger LOG = LoggerFactory.getLogger(SpotInstancesAllocator.class);
 	private static SpotInstancesAllocator instance;
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
@@ -143,9 +144,18 @@ public class SpotInstancesAllocator {
 
 	public void cancelSpotInstancesRequests() {
 		try {
-
+			
+			DescribeSpotInstanceRequestsRequest spotInstanceRequestsRequest = new DescribeSpotInstanceRequestsRequest();
+			DescribeSpotInstanceRequestsResult spotInstanceRequestsResult = ec2.describeSpotInstanceRequests(spotInstanceRequestsRequest);
+			List<SpotInstanceRequest> requestList = spotInstanceRequestsResult.getSpotInstanceRequests();
+			
+			spotInstanceRequestIds = new ArrayList<String>();
+			for (SpotInstanceRequest request : requestList) {
+				spotInstanceRequestIds.add(request.getSpotInstanceRequestId());
+			}
+			
 			//Cancel requests.
-			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest();
+			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(spotInstanceRequestIds);
 			CancelSpotInstanceRequestsResult cancelResult = ec2.cancelSpotInstanceRequests(cancelRequest);
 			List<CancelledSpotInstanceRequest> cancelledRequests = cancelResult.getCancelledSpotInstanceRequests(); 
 
