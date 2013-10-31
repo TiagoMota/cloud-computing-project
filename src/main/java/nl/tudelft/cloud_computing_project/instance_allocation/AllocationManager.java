@@ -2,9 +2,12 @@ package nl.tudelft.cloud_computing_project.instance_allocation;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -50,6 +53,7 @@ public class AllocationManager {
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
 	private Sql2o sql2o;
 	private ProvisioningPolicyInterface provisioningPolicy;
+	private Map<String, Date> protectedInstances = new Hashtable<String, Date>(); 
 
 	private AllocationManager(){
 		try {
@@ -64,6 +68,32 @@ public class AllocationManager {
 		return instance;
 	}
 	
+	public void setProtectedInstance(String instanceId) {
+		protectedInstances.put(instanceId, new Date());
+	}
+	
+	public Map<String, Date> getProtectedInstance() {
+		return protectedInstances;
+	}
+	
+	public void updateProtectedInstances() {
+		
+		LOG.debug("protectedInstances: " + protectedInstances.size());
+		
+		long toDeleteTime = new Date().getTime() - (5 * 60000);
+		Collection<String> toDeleteKeys = new ArrayList<String>();
+		
+		for(Map.Entry<String, Date> protectedInstance : protectedInstances.entrySet()) {
+			if (protectedInstance.getValue().getTime() < toDeleteTime)
+				toDeleteKeys.add(protectedInstance.getKey());
+		}
+		
+		for (String key : toDeleteKeys)
+			protectedInstances.remove(key);
+		
+		LOG.debug("protectedInstances after processing: " + protectedInstances.size());
+
+	}
 	
 	public void applyProvvisioningPolicy() {
 		
@@ -92,9 +122,12 @@ public class AllocationManager {
 		int maxAllocatableInstances;
 		int allocatedNormalInstances;
 		
+		LOG.debug("normalInstancesRunning: " + normalInstancesRunning);
+		
 		if (normalInstancesRunning < MAX_NORMAL_INSTANCES){
 			
 			maxAllocatableInstances = MAX_NORMAL_INSTANCES - normalInstancesRunning;
+			LOG.debug("maxAllocatableInstances: " + maxAllocatableInstances);
 			
 			if(maxAllocatableInstances < instancesToAllocate)
 				allocatedNormalInstances = allocateNormalInstances(maxAllocatableInstances);
@@ -107,8 +140,8 @@ public class AllocationManager {
 			
 		}
 		else {
-			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
-			SpotInstancesThread.start();
+			//Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
+			//SpotInstancesThread.start();
 		}
 		
 	}
@@ -130,10 +163,12 @@ public class AllocationManager {
 					.withUserData(WORKER_SCRIPT);
 
 				RunInstancesResult runInstances = ec2.runInstances(runInstancesRequest);
-
-				// TAG EC2 INSTANCES
+				
+				// Tag instances + put them under protection
 				List<Instance> instances = runInstances.getReservation().getInstances();
 				for (Instance instance : instances) {
+					
+					setProtectedInstance(instance.getInstanceId());
 					
 					CreateTagsRequest createTagsRequest = new CreateTagsRequest();
 					createTagsRequest.withResources(instance.getInstanceId()).withTags(new Tag("cloudocr", "worker"));

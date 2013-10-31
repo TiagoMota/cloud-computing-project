@@ -102,6 +102,7 @@ public class SpotInstancesAllocator {
 					}
 
 					instanceIds.add(describeResponse.getInstanceId());
+					AllocationManager.getInstance().setProtectedInstance(describeResponse.getInstanceId());
 					tagInstances();
 				}
 			} catch (AmazonServiceException e) {

@@ -31,7 +31,7 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 		int runningInstancesNum;
 		
 		//get number of active Instances 
-		runningInstancesNum = Monitor.getInstance().getNumAvailableInstances();
+		runningInstancesNum = Monitor.getInstance().getNumRunningInstances();
 		
 		//get Jobs Info from DB
 		sql2o = Database.getConnection();
