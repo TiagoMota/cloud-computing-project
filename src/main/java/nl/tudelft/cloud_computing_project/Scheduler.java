@@ -88,8 +88,8 @@ public class Scheduler {
 	/**
 	 * Maximum load of a worker (in byte filesize of assigned jobs)
 	 */
-	private long getMaxWorkerLoad() {
-		return 50 * 1024 * 1024;	// 50 MB
+	private boolean workerLoadAcceptable(long currentload) {
+		return currentload < 5 * 1024 * 1024;
 	}
 	
 	/**
@@ -116,9 +116,11 @@ public class Scheduler {
 					new Worker(r.getString("instance_id"), r.getLong("worker_load"), r.getInteger("maxorder"))
 				);
 		}
+		LOG.debug(String.format("Got info about %d workers that already have assignments", workersinfomap.size()));
 		
 		// Get the available workers
 		Set<String> availableWorkers = Monitor.getInstance().getAvailableInstancesId();
+		LOG.debug(String.format("Got info about %d workers from the monitor", availableWorkers.size()));
 		workers = new HashSet<Worker>(availableWorkers.size());
 		for(String instanceid : availableWorkers) {
 			Worker w = workersinfomap.get(instanceid);
@@ -127,6 +129,7 @@ public class Scheduler {
 			}
 			workers.add(w);
 		}
+		LOG.debug(String.format("We now have %d workers", workers.size()));
 	}
 	
 	/**
@@ -182,7 +185,7 @@ public class Scheduler {
 				// Get preferred worker
 				w = workers.poll();
 				// Check if the current load is acceptable, otherwise keep removed from queue
-				if(w.load > getMaxWorkerLoad()) {
+				if(!workerLoadAcceptable(w.load)) {
 					w = null;
 				}
 			}
@@ -194,6 +197,12 @@ public class Scheduler {
 			// Assign job to worker
 			// TODO: Fix that this doesn't work if maxorder is Integer.MAX_VALUE
 			assignments.add(new Assignment(w.instance_id, j.getId(), w.maxorder++));
+			
+			w.load += j.getFilesize();
+			
+			if(workerLoadAcceptable(w.load)) {
+				workers.add(w);
+			}
 		}
 		return assignments;
 	}
