@@ -66,9 +66,10 @@ public class Monitor{
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
 					for (Tag tag : instance.getTags()){
-						if(tag.getKey().equals("cloudocr") && tag.getValue().equals("worker"))
+						if(tag.getKey().equals("cloudocr") && tag.getValue().equals("worker")){
 							normalInstanceNum++;
-						break;
+							break;
+						}	
 					}
 	
 				}
@@ -102,7 +103,6 @@ public class Monitor{
 					String instanceStatus = instanceStatusInfo.getInstanceStatus().getStatus();
 					String systemStatus = instanceStatusInfo.getSystemStatus().getStatus();
 
-					//Call Fault Manager to handle failure
 					if(instanceStatus.equalsIgnoreCase("ok") && systemStatus.equalsIgnoreCase("ok")) {
 						String instanceId = instanceStatusInfo.getInstanceId();
 						if (!(instanceId.equals(this.masterId)))
@@ -110,6 +110,22 @@ public class Monitor{
 					}	
 				}
 			}
+			
+			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(availableInstancesId));
+            List<Reservation> reservations = describeInstancesRequest.getReservations();
+			
+            for (Reservation reservation : reservations) {
+				for (Instance instance : reservation.getInstances()) {
+					for (Tag tag : instance.getTags()){
+						if(tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance"))) {
+							availableInstancesId.remove(instance.getInstanceId());
+							break;
+						}
+					}
+	
+				}
+            }
+			
 		} catch (AmazonServiceException ase) {
 			LOG.error("Caught Exception: " + ase.getMessage());
 			LOG.error("Reponse Status Code: " + ase.getStatusCode());
