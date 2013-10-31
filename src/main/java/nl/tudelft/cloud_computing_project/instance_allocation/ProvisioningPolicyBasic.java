@@ -5,6 +5,8 @@ import nl.tudelft.cloud_computing_project.CloudOCR;
 import nl.tudelft.cloud_computing_project.Monitor;
 import nl.tudelft.cloud_computing_project.model.Database;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sql2o.Sql2o;
 import org.sql2o.data.Table;
 
@@ -21,6 +23,7 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 	
 	private static final int MIN_NORMAL_INSTANCES 						= Integer.parseInt((String)CloudOCR.Configuration.get("MIN_NORMAL_INSTANCES"));
 	private static final int AVG_EXECUTABLE_JOBS_PER_MACHINE_PER_HOUR 	= Integer.parseInt((String)CloudOCR.Configuration.get("AVG_EXECUTABLE_JOBS_PER_MACHINE_PER_HOUR"));
+	private static Logger LOG = LoggerFactory.getLogger(ProvisioningPolicyBasic.class);
 	private Sql2o sql2o;
 
 	public int applyProvisioningPolicy() {
@@ -42,6 +45,10 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 		//Check on minimum active instances
 		if (optimalInstanceNumber == 0)
 			optimalInstanceNumber = MIN_NORMAL_INSTANCES;
+		
+		LOG.info("Number of unassigned Jobs: " + unassignedJobs);
+		LOG.info("Optimal Instance Number: " + optimalInstanceNumber);
+		LOG.info("Running Instance Number: " + runningInstancesNum);
 		
 		return optimalInstanceNumber - runningInstancesNum;
 		
