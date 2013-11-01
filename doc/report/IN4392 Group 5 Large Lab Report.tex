@@ -34,7 +34,10 @@
 \maketitle
 
 \begin{abstract}
-In this report we introduce a cloud-based system for automatic OCR-conversion of image files, called CloudOCR. The application uses elastic cloud resource provisioning and resource allocation to improve scalability in performance. The experiments conducted, shows that CloudOCR
+In this report we introduce a cloud-based system for automatic OCR-conversion of image files, called CloudOCR.
+The system is fully automatic and can dynamically scale it resources based on the available workload. It also uses Amazon EC2 spot instances to keep the costs as low as possible.
+
+In the experimental section we tested how well our system would scale and what Amazon EC2 instance types we should use for the best performance / cost ratio. 
 \end{abstract}
 
 \section{Introduction}
@@ -291,7 +294,7 @@ Which puts the equivalence well over a million jobs, which would make the deskto
 	
 \section{Conclusion}
 In this report, we designed a system based on a IaaS cloud platform for OCR-conversion of JPEG image files, and evaluated its performance on Amazon Web Services.
-Our results show that using a database do not cause a significant slowdown, 
+Our results show that the designed system does well in solving the given use case and is cheaper and faster than an equivalent desktop solution.
 
 \begin{thebibliography}{9}
 
