@@ -1,12 +1,7 @@
 \documentclass[a4paper]{IEEEtran}
 
 \usepackage[fleqn]{amsmath}
-%\usepackage{amsfonts}
-%\usepackage{algorithm}% http://ctan.org/pkg/algorithms
-%\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
-\usepackage[]{hyperref}
-%\usepackage{verbatim}
-%\usepackage{textcomp}
+\usepackage[hidelinks]{hyperref}
 \usepackage{pdflscape}
 \usepackage{footnote}
 
@@ -24,8 +19,8 @@
 	\IEEEauthorblockN{David Hoepelman\\}
 	\IEEEauthorblockA{Email: dhoepelman@gmail.com\\}
 	\and
-	\IEEEauthorblockN{Course instructor: Alexandru Iosup\\}
-	\IEEEauthorblockA{Email: A.Iosup@tudelft.nl \\}
+	\IEEEauthorblockN{Course instructors: Alexandru Iosup, Dick Epema\\}
+	\IEEEauthorblockA{Email: A.Iosup@tudelft.nl, D.H.J.Epema@tudelft.nl\\}
 }
 \makesavenoteenv{tabular} 
 
@@ -59,7 +54,7 @@ Using Amazon Web Services as the cloud infrastructure provider, we developed Clo
 CloudOCR scales according to the number of available jobs, load-balances the workload evenly across the rented machines (from now on called workers) and provides fault tolerance in both the master and the workers. 
 
 The system is fully automatic, aside from the submission of jobs to the database and the resolution of faulty jobs.
-
+\newpage
 \subsection*{Report structure}
 In section \ref{sec:backgroundonapplication} we will first detail the application and its requirements. In section \ref{sec:systemdesign} we will show the design of the solution. In section \ref{sec:experimentalresults} we will show the experiments we used to evaluate the system.
 In the final two sections of this report we will draw conclusions from the evaluations.
@@ -79,7 +74,7 @@ To be able to implement the WantCloud BV's wishes, we have the following require
 	\item[Monitoring] Worker numbers and job throughput should be monitored.
 	\item[Scheduling] The system should make use of Amazon's spot instance system (wherein one bids for system capacity) to keep costs as low as possible.
 \end{LaTeXdescription}
-
+ \newpage
 \section{System Design}
 \label{sec:systemdesign}
 
@@ -159,7 +154,7 @@ Our solution focus on efficient scheduling to minimize the total cost. This is d
 The user can also configure this price/performance trade-off.
 
 \end{LaTeXdescription}
-
+\newpage
 \section{Experimental results}
 \label{sec:experimentalresults}
 
@@ -247,7 +242,7 @@ Desktop & 30s & n.a. \\ \hline
 \end{tabular}
 \end{table}
 
-\ \\
+\newpage
 \subsubsection{Allocation behavior}
 
 We tested whether CloudOCR had the desired allocation behaviour by simulating a workload. We configured CloudOCR to only use spot instances. We configured the ideal number of workers to be 10\% the number of assigned jobs, which corresponds to completing all jobs in about an hour (see Table \ref{tesperfresults}). We then started the system with 100 jobs available and added 100 jobs more at the 15 minute mark.
@@ -263,7 +258,7 @@ As can be seen clearly from the results (Figure \ref{fig_allperfresults}) our ap
 \label{fig_allperfresults}
 \end{figure}
  
-
+\newpage
 \section{Discussion}
 
 
