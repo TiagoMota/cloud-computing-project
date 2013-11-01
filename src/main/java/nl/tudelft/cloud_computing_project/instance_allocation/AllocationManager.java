@@ -2,9 +2,12 @@ package nl.tudelft.cloud_computing_project.instance_allocation;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -37,8 +40,7 @@ import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 public class AllocationManager {
 	
 	private final String delete_instance_assignment_sql 	
-			= "DELETE * "
-			+ "FROM Assignment "
+			= "DELETE FROM Assignment "
 			+ "WHERE worker_instanceid = :instanceId";
 	
 	private static final String PROVISIONING_POLICY_CLASS = (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
@@ -50,6 +52,7 @@ public class AllocationManager {
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
 	private Sql2o sql2o;
 	private ProvisioningPolicyInterface provisioningPolicy;
+	private Map<String, Date> protectedInstances = new Hashtable<String, Date>(); 
 
 	private AllocationManager(){
 		try {
@@ -64,6 +67,32 @@ public class AllocationManager {
 		return instance;
 	}
 	
+	public void setProtectedInstance(String instanceId) {
+		protectedInstances.put(instanceId, new Date());
+	}
+	
+	public Map<String, Date> getProtectedInstance() {
+		return protectedInstances;
+	}
+	
+	public void updateProtectedInstances() {
+		
+		LOG.debug("protectedInstances: " + protectedInstances.size());
+		
+		long toDeleteTime = new Date().getTime() - (5 * 60000);
+		Collection<String> toDeleteKeys = new ArrayList<String>();
+		
+		for(Map.Entry<String, Date> protectedInstance : protectedInstances.entrySet()) {
+			if (protectedInstance.getValue().getTime() < toDeleteTime)
+				toDeleteKeys.add(protectedInstance.getKey());
+		}
+		
+		for (String key : toDeleteKeys)
+			protectedInstances.remove(key);
+		
+		LOG.debug("protectedInstances after processing: " + protectedInstances.size());
+
+	}
 	
 	public void applyProvvisioningPolicy() {
 		
@@ -88,13 +117,16 @@ public class AllocationManager {
 	
 	private void allocateMachines(int instancesToAllocate) {
 		
-		int normalInstancesRunning = Monitor.getInstance().getNumRunningNormalInstances();
+		int normalInstancesRunning = Monitor.getInstance().getNumRunningOrPendingNormalInstances();
 		int maxAllocatableInstances;
 		int allocatedNormalInstances;
+		
+		LOG.debug("normalInstancesRunning: " + normalInstancesRunning);
 		
 		if (normalInstancesRunning < MAX_NORMAL_INSTANCES){
 			
 			maxAllocatableInstances = MAX_NORMAL_INSTANCES - normalInstancesRunning;
+			LOG.debug("maxAllocatableInstances: " + maxAllocatableInstances);
 			
 			if(maxAllocatableInstances < instancesToAllocate)
 				allocatedNormalInstances = allocateNormalInstances(maxAllocatableInstances);
@@ -106,7 +138,8 @@ public class AllocationManager {
 			LOG.info("Allocated " + allocatedNormalInstances + " default instances");
 			
 		}
-		else {
+		
+		if (instancesToAllocate > 0){
 			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
 			SpotInstancesThread.start();
 		}
@@ -130,10 +163,12 @@ public class AllocationManager {
 					.withUserData(WORKER_SCRIPT);
 
 				RunInstancesResult runInstances = ec2.runInstances(runInstancesRequest);
-
-				// TAG EC2 INSTANCES
+				
+				// Tag instances + put them under protection
 				List<Instance> instances = runInstances.getReservation().getInstances();
 				for (Instance instance : instances) {
+					
+					setProtectedInstance(instance.getInstanceId());
 					
 					CreateTagsRequest createTagsRequest = new CreateTagsRequest();
 					createTagsRequest.withResources(instance.getInstanceId()).withTags(new Tag("cloudocr", "worker"));
@@ -166,10 +201,6 @@ public class AllocationManager {
 		
 		try {
 
-			//Cancel spot instance requests
-			SpotInstancesAllocator.getInstance().cancelSpotInstancesRequests();
-
-			
 			//Retrieve the list of instances from EC2
 			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
 			List<Reservation> reservations = describeInstancesRequest.getReservations();
@@ -181,10 +212,34 @@ public class AllocationManager {
 			//Decide which instances to terminate
 			for (Instance instance : instances) {
 				
-				//Only deallocates spot Instances
-				if (!instance.getTags().contains(new Tag("cloudocr", "spotinstance")) && !onlySpotInstances)
-					if (instance.getTags().contains(new Tag("cloudocr", "master")) || !instance.getTags().contains(new Tag("cloudocr")))
+				LOG.debug("ID " + instance.getInstanceId() + ", TAGs:" + instance.getTags().toString());
+				//Continue if: a non cloudOCR instance is being analyzed
+				boolean isCloudOCR = false;
+				for (Tag tag : instance.getTags()){
+					if(tag.getKey().equals("cloudocr")) {
+						isCloudOCR = true;
 						continue;
+					}
+				}
+				
+				if(!isCloudOCR){
+					LOG.debug(instance.getInstanceId() + ": skipped no cloudocr");
+					continue;
+				} else {
+					//If onlySpotInstances is true then deallocate ONLY Spot Instances
+					if (onlySpotInstances) {
+						if (!instance.getTags().contains(new Tag().withKey("cloudocr").withValue("spotinstance"))) {
+							LOG.debug(instance.getInstanceId() + ": skipped no spotinstance");
+							continue;
+						}
+					//Else deallocate it unless its the Master
+					} else {
+						if (instance.getTags().contains(new Tag().withKey("cloudocr").withValue("master")) || instance.getTags().contains(new Tag().withKey("Name").withValue("cloudocr-worker-setup")) ) {
+							LOG.debug(instance.getInstanceId() + ": skipped master");
+							continue;
+						}
+					}
+				}
 				
 				//Retrieves the launchTime of the instance
 				launchTime = instance.getLaunchTime();
@@ -251,7 +306,7 @@ public class AllocationManager {
 		
 		if (terminatedInstancesCount < instancesToTerminateNum) {
 			LOG.info("Terminated " + terminatedInstancesCount + " spot instances, proceeding to terminate " + (instancesToTerminateNum - terminatedInstancesCount) + " default instance(s)");
-			return deallocateMachines(instancesToTerminateNum - terminatedInstancesCount, false);
+			return terminatedInstancesCount + deallocateMachines(instancesToTerminateNum - terminatedInstancesCount, false);
 		}
 		LOG.info("Terminated " + terminatedInstancesCount + " default instances");
 		return terminatedInstancesCount;

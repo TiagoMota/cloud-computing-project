@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import nl.tudelft.cloud_computing_project.instance_allocation.AllocationManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,28 +42,26 @@ public class Monitor{
 		return instance;
 	}
 
-	public int getNumAvailableInstances() {
+	public int getNumRunningOrPendingInstances() {
 
-		return getAvailableInstancesId().size();
+		return getRunningOrPendingInstancesId().size();
 
 	}
 
-	public int getNumRunningNormalInstances() {
+	public int getNumRunningOrPendingNormalInstances() {
 
-		int normalInstanceNum = 0;
+		Set<String> runningOrPendingInstancesId = getRunningOrPendingInstancesId();
 
 		try {
 
-			Set<String> availableInstancesId = getAvailableInstancesId();
-			
-			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(availableInstancesId));
+			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(runningOrPendingInstancesId));
             List<Reservation> reservations = describeInstancesRequest.getReservations();
-			
+            
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
 					for (Tag tag : instance.getTags()){
-						if(tag.getKey().equals("cloudocr") && tag.getValue().equals("worker")){
-							normalInstanceNum++;
+						if(tag.getKey().equals("cloudocr") && !tag.getValue().equals("worker")){
+							runningOrPendingInstancesId.remove(instance.getInstanceId());
 							break;
 						}	
 					}
@@ -76,7 +76,50 @@ public class Monitor{
 			LOG.error("Request ID: " + ase.getRequestId());
 		}
 
-		return normalInstanceNum;
+		return runningOrPendingInstancesId.size();
+
+	}
+	
+	public Set<String> getRunningOrPendingInstancesId() {
+		Set<String> runningOrPendingInstancesId = new TreeSet<String>();
+
+		try {
+			//Retrieve instances status
+			DescribeInstanceStatusResult describeInstanceResult = ec2.describeInstanceStatus(new DescribeInstanceStatusRequest());
+			List<InstanceStatus> state = describeInstanceResult.getInstanceStatuses();
+
+			for (InstanceStatus instanceStatusInfo : state){
+				//Retrieve machine state (running, stopped, booting)
+				String machineState = instanceStatusInfo.getInstanceState().getName();
+
+				if(machineState.equalsIgnoreCase("running") || machineState.equalsIgnoreCase("pending")) {
+					runningOrPendingInstancesId.add(instanceStatusInfo.getInstanceId());
+				}
+			}
+			
+			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(runningOrPendingInstancesId));
+            List<Reservation> reservations = describeInstancesRequest.getReservations();
+			
+            for (Reservation reservation : reservations) {
+				for (Instance instance : reservation.getInstances()) {
+					for (Tag tag : instance.getTags()){
+						if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance")))) {
+							runningOrPendingInstancesId.remove(instance.getInstanceId());
+							break;
+						}
+					}
+	
+				}
+            }
+			
+		} catch (AmazonServiceException ase) {
+			LOG.error("Caught Exception: " + ase.getMessage());
+			LOG.error("Reponse Status Code: " + ase.getStatusCode());
+			LOG.error("Error Code: " + ase.getErrorCode());
+			LOG.error("Request ID: " + ase.getRequestId());
+		}
+
+		return runningOrPendingInstancesId;
 
 	}
 
@@ -131,9 +174,12 @@ public class Monitor{
 
 	public void monitorSystem(){
 		
-		LOG.info("Monitoring System ...");
+		LOG.info("Monitoring System..");
 
 		try {
+			
+			//Update protected instances
+			AllocationManager.getInstance().updateProtectedInstances();
 
 			//Retrieve instances status
 			DescribeInstanceStatusResult describeInstanceResult = ec2.describeInstanceStatus(new DescribeInstanceStatusRequest());
@@ -150,10 +196,16 @@ public class Monitor{
 
 					//Call Fault Manager to handle failure
 					if(!instanceStatus.equalsIgnoreCase("ok") || !systemStatus.equalsIgnoreCase("ok")) {
+						
+						//Check if the machine is protected
+						if(AllocationManager.getInstance().getProtectedInstance().containsKey(instanceStatusInfo.getInstanceId()))
+							continue;
+							
 						LOG.info("Found a failing machine: " + instanceStatusInfo.getInstanceId());
 						//Run Thread that deals with the failed machine
 						FaultManagerThread faultManagerThread = new FaultManagerThread(faultManager, instanceStatusInfo.getInstanceId());
 						faultManagerThread.start();
+						
 					}	
 				}
 			}
@@ -181,37 +233,6 @@ public class Monitor{
 			LOG.error(e.getMessage());
 		}
 	}
-	
-	
-	/** USELESS
-	private String getInstanceID() {
-		String url = "http://169.254.169.254/latest/meta-data/instance-id";
-		StringBuffer response = new StringBuffer();
-		URL obj;
-
-		try {
-			obj = new URL(url);
-
-			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-			con.setRequestMethod("GET");
-
-			BufferedReader in = new BufferedReader(
-					new InputStreamReader(con.getInputStream()));
-			String inputLine;
-
-
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			in.close();
-
-		} catch (Exception e) {
-			LOG.error("Error instantiating ProvvisioningPolicy class:\n" + e.getMessage());
-		}
-
-		return response.toString();
-	}
-	*/
 	
 	/**
 	 * This class is used to thread upon the discovery of a failed machine.
