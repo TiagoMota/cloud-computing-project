@@ -68,22 +68,7 @@ public class SetupTestDataSet {
 			"INSERT INTO Job (filename, filesize, priority, submission_time) VALUES "
 			+ "(:filename, :filesize, :priority, :submission_time)";
 	
-	public static void main(String[] args) {
-		int datasetsize = 0;
-		try{
-			if(args.length > 0) {
-				datasetsize = Integer.parseInt(args[0]);
-			} else {
-				System.out.println("Input test dataset size (will add to existing jobs):");
-				Scanner s = new Scanner(System.in);
-				datasetsize = s.nextInt();
-				s.close();
-			}
-		} catch (NumberFormatException e) {
-			System.out.println("Invalid argument");
-			System.exit(1);
-		}
-		
+	public static void addjobs(int datasetsize) {
 		LOG.info(String.format("Adding %d test jobs to the database", datasetsize));
 		
 		Connection c = Database.getConnection().beginTransaction();
@@ -106,6 +91,25 @@ public class SetupTestDataSet {
 				q.executeBatch();
 			}
 		}, datasetsize);
+	}
+	
+	public static void main(String[] args) {
+		int datasetsize = 0;
+		try{
+			if(args.length > 0) {
+				datasetsize = Integer.parseInt(args[0]);
+			} else {
+				System.out.println("Input test dataset size (will add to existing jobs):");
+				Scanner s = new Scanner(System.in);
+				datasetsize = s.nextInt();
+				s.close();
+			}
+		} catch (NumberFormatException e) {
+			System.out.println("Invalid argument");
+			System.exit(1);
+		}
+		
+		addjobs(datasetsize);
 	}
 
 }
