@@ -105,7 +105,7 @@ public class AllocationManager {
 		else if (provisioningPolicyResult < 0) {
 			int result = deallocateMachines(Math.abs(provisioningPolicyResult), true);
 			if(result < Math.abs(provisioningPolicyResult))
-				LOG.error("Error in deallocating machines");
+				LOG.error("Deallocating machines stopped (error or no charging soon)");
 		}
 
 		
