@@ -64,11 +64,11 @@ In the final two sections of this report we will draw conclusions from the evalu
 
 \section{Background on Application}
 \label{sec:backgroundonapplication}
-CloudOCR is based on a existing technology called Tesseract-OCR that provides OCR services for bitmap images files like ``JPEG'' and ``PNG'' files and extracts their text into plain text files. For simplification our application takes only JPEG image files as input and output a simple text file.
+CloudOCR is based on a existing technology called Tesseract OCR \cite{tesseractocr} that provides OCR services for bitmap images files like ``JPEG'' and ``PNG'' files and extracts their text into plain text files. For simplification our application takes only JPEG image files as input and output a simple text file.
 
 We use the Amazon AWS cloud, specifically the EC2 (virtual machine), S3 (storage) and RDS (relational database) services.
 
-To be able to implement the WantedCloud BV's wishes, we have the following requirements
+To be able to implement the WantCloud BV's wishes, we have the following requirements
 \begin{LaTeXdescription}
 	\item[Automation] WantCloud does not have the resources to constantly manage the application. As such the application should perform normally without user intervention.
 	\item[Elasticity] WantCloud has a large library to OCR, and as such the application should be able to scale to large numbers of jobs.
@@ -82,33 +82,38 @@ To be able to implement the WantedCloud BV's wishes, we have the following requi
 \label{sec:systemdesign}
 
 \subsection*{Global overview}
-CloudOCR is composed by a master server and working Virtual Machines (hereby VM's only). The master server is the one responsible for all management operations of the system, such as job  scheduling, resource allocation, fault management and so on. The jobs are distributed among the VM's. These are spot instances: impossible to know how long it will take for a new spot instance to be available, but the cost is much lower.
-To show the system design, a high-level diagram can be found in Figure \ref{fig_sysarch}.
+
+CloudOCR uses a master-slave structure. There is one master server which handles all the allocation, scheduling, monitoring and so on. It controls virtual machines (workers) that execute jobs.
+
+One jobs consists of one image file to be processed by Tesseract. Jobs are inserted into an ordered queue which is implemented in a database. The scheduler assigns jobs to workers (at a fixed maximum per worker) and the assignments are also stored in the database.
+
+Workers pull their jobs from the database and start processing them. The monitor retrieves system information which the scheduler, allocation manager and fault manager can use. The allocation manager monitors the number of available jobs and requests spot instances accordingly. The fault manager monitors the system for faults and reinserts uncompleted jobs of failed machines or removes corrupt jobs.
+
+A high-level diagram can be found in Figure \ref{fig_sysarch}.
+
 Our system components are:
 
 \begin{LaTeXdescription}
 
-\item[Front-End]
-The online front-end interface where jobs can be submitted by users, and a priority can be assigned. By using a simple Java program, the new jobs are stored on the system database.
+\item[Front-End] We use simple Java program to store new jobs in the queue. As the insertion consists of only a file upload and a SQL query different (e.g. on-line) front-ends are trivial to make.
 
 \item[Job Queue]
 The job queue holds jobs that still need to be processed and meta-information like priority and number of failures. We implemented it using a MySQL database, querying it to get the updated, sorted by priority, job queue.
 
 \item[Job Scheduler]
-The scheduler assigns the jobs present on the queue to the available workers and includes the logic for \textbf{load-balancing}. A \textbf{greedy on-line load-balancing} algorithm \cite{kleinberg2006} is used to assign these jobs to those workers, until a predefined maximum amount of jobs per worker is reached and the scheduler is executed at regular predefined intervals.
-These predefined values change according to the system policy applied to the CloudOCR application.
+The scheduler assigns the jobs from the queue to the available workers and includes the logic for \textbf{load-balancing}. A \textbf{greedy on-line load-balancing} algorithm \cite{kleinberg2006} is used to assign these jobs to those workers, until a configurable maximum amount of jobs per worker is reached. The scheduler is executed at regular predefined intervals.
 
 \item[Workers]
-A worker exits only to execute its jobs. They are implemented as Amazon EC2 instances running a common AMI that has the open source OCR engine installed, Tesseract-OCR.
+A worker exits only to execute jobs. The workers are implemented as Amazon EC2 instances running a common AMI that has the open source OCR engine Tesseract OCR installed.
 
 \item[System Monitor]
 The system monitor keeps track of useful information like job status or resource usage, in order to provide this information to other system components like the fault or allocation manager.
 
 \item[Fault Manager]
-The fault manager waits for the monitor's fault information and handle it accordingly, which means a failed job is resubmitted to the job queue and failing VM's are shutdown (if not already). A job that consistently fails for a predefined amount of times is logged, instead of resubmitted.
+The fault manager waits for fault information from the monitor and handles accordingly, which means a failed job is resubmitted to the job queue and failing VM's are shutdown (if they are not already). A job that consistently fails is removed from the queue and logged after a configurable amount of failures.
 
 \item[Allocation Manager]
-The allocation manager waits for the monitor's resource usage information and new ones are allocated or old ones removed. New spot instances are allocated based on current submitted jobs and when the price is low enough.
+The allocation manager allocates workers according to the number of unprocessed jobs. The minimum amount of on-demand workers is configurable (we set it to 1 to keep a minimum throughput while minimizing costs), otherwise spot instances will be requested if the current price is low enough.
 
 \end{LaTeXdescription}
 
@@ -228,13 +233,13 @@ Which puts the equivalence point at about 600,000 - 650,000 jobs, which would ma
 
 \begin{figure}
 \centering
-\includegraphics[width=0.5\textwidth]{"results-tessaract"}
+\includegraphics[width=0.5\textwidth]{"results-tesseract"}
 \caption{Average job processing time}
 \label{fig_tesperfresults}
 \end{figure}
 
 \begin{table}
-\caption{Average Tessaract job processing time}
+\caption{Average Tesseract job processing time}
 \label{tesperfresults}
 \centering
 \begin{tabular}{| l | l | l |}
@@ -262,6 +267,11 @@ Laptop & 30s & n.a. \\ \hline
 \bibitem{amazonecu}{
 	Amazon EC2 instance description page:  \url{http://aws.amazon.com/ec2/#instance}
 }
+
+\bibitem{tesseractocr} {
+	Tesseract OCR: \url{https://code.google.com/p/tesseract-ocr/}
+}
+
 \end{thebibliography}
 
 \appendix{Time spent}
