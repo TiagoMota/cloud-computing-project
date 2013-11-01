@@ -226,10 +226,10 @@ Our main findings are that the chosen instance type does not greatly influence t
 
 Based on these results we also do \emph{a rough estimate} on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
 $$
-750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.0016\$ \cdot \text{\#jobs}
+750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.00037\$ \cdot \text{\#jobs}
 $$
 
-Which puts the equivalence point at about 600,000 - 650,000 jobs, which would make the desktop run for over 200 days. So even excluding important cost factors like maintenance and network and storage infrastructure the cloud-based solution looks like and interesting solution 
+Which puts the equivalence well over a million jobs, which would make the desktop run for well over a year. This even excludes other costs like maintance and network infrastructure. All in all this means that a cloud solution is very attractive compared to getting your own machines.
 
 \begin{figure}
 \centering
@@ -245,14 +245,29 @@ Which puts the equivalence point at about 600,000 - 650,000 jobs, which would ma
 \begin{tabular}{| l | l | l |}
 \hline
 Instance & Processing time & Cost / job (normal/spot) \\ \hline
-Micro & 326s & 0,00054 / 0,0018 \$ \\ \hline
-Small & 93s & 0,00041 / 0,0017 \$ \\ \hline
-Medium & 45s & 0,00037 / 0,0016 \$ \\ \hline
+Micro & 326s & 0,0018 / 0,00054 \$ \\ \hline
+Small & 93s & 0,0017 / 0,00041 \$ \\ \hline
+Medium & 45s & 0,0016 / 0,00037 \$ \\ \hline
 Laptop & 30s & n.a. \\ \hline
 \end{tabular}
 \end{table}
 
 \subsection{Allocation behavior}
+
+To test whether our application indeed had desired behavior we ran several workloads.
+
+For our first test we configured CloudOCR to only use spot instances. We configured the ideal number of workers to be 10\% the number of assigned jobs, which corresponds to completing all jobs in about an hour (see Table \ref{tesperfresults}). We then started the system with 100 jobs available and added 100 jobs more at the 15 minute mark.
+Furthermore we decreased the "de-allocation protection" from 50 minutes to 10 minutes. The de-allocation protection prevents workers from being decomissioned if they have been running fewer than 50 minutes of an hour. This is because Amazon charges for a full hour even if you use only a portion of an hour, so this prevents needless wasting of money. We did this so de-allocation behavior was more apparent. The de-allocation protection also protects too much workers from being killed too fast, which would cause a slowdown when nearly all jobs were completed.
+
+As can be seen clearly from the results our application closely follows the configured allocation. We can also see a lag 
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{"results-allocation-2"}
+\caption{Allocation characteristics with workload 1}
+\label{fig_tesperfresults}
+\end{figure}
+ 
 
 \section{Discussion}
 
