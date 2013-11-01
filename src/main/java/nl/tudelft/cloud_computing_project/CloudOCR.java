@@ -100,6 +100,7 @@ public class CloudOCR {
 		};
 		// Start the Allocation Manager
 		AllocationManagerThread.start();
+		
 	}
 
 	private static Properties loadProperties() {

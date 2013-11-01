@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import nl.tudelft.cloud_computing_project.instance_allocation.AllocationManager;
+import nl.tudelft.cloud_computing_project.instance_allocation.SpotInstancesAllocator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,10 +27,10 @@ import com.amazonaws.services.ec2.model.Tag;
 
 public class Monitor{
 
-	private static Monitor instance;
-	private static Logger LOG = LoggerFactory.getLogger(Monitor.class);
-	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
-	private FaultManager faultManager;
+	private static Monitor 	instance;
+	private static Logger 	LOG = LoggerFactory.getLogger(Monitor.class);
+	private AmazonEC2 		ec2 = AmazonEC2Initializer.getInstance();
+	private FaultManager 	faultManager;
 
 
 	private Monitor(){
@@ -102,13 +103,14 @@ public class Monitor{
 			
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
-					for (Tag tag : instance.getTags()){
-						if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance")))) {
-							runningOrPendingInstancesId.remove(instance.getInstanceId());
-							break;
+					if(!instance.getTags().isEmpty()) {
+						for (Tag tag : instance.getTags()){
+							if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker")))) {
+								runningOrPendingInstancesId.remove(instance.getInstanceId());
+								break;
+							}
 						}
 					}
-	
 				}
             }
 			
@@ -151,13 +153,14 @@ public class Monitor{
 			
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
-					for (Tag tag : instance.getTags()){
-						if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance")))) {
-							availableInstancesId.remove(instance.getInstanceId());
-							break;
+					if(!instance.getTags().isEmpty()) {
+						for (Tag tag : instance.getTags()){
+							if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker")))) {
+								availableInstancesId.remove(instance.getInstanceId());
+								break;
+							}
 						}
 					}
-	
 				}
             }
 			
@@ -178,10 +181,13 @@ public class Monitor{
 
 		try {
 			
-			//Update protected instances
+			//UPDATE status on Spot Requests
+			SpotInstancesAllocator.getInstance().monitorSpotInstancesRequests();
+			
+			//UPDATE protected instances
 			AllocationManager.getInstance().updateProtectedInstances();
 
-			//Retrieve instances status
+			//CHECK for failures
 			DescribeInstanceStatusResult describeInstanceResult = ec2.describeInstanceStatus(new DescribeInstanceStatusRequest());
 			List<InstanceStatus> state = describeInstanceResult.getInstanceStatuses();
 
@@ -202,6 +208,7 @@ public class Monitor{
 							continue;
 							
 						LOG.info("Found a failing machine: " + instanceStatusInfo.getInstanceId());
+						
 						//Run Thread that deals with the failed machine
 						FaultManagerThread faultManagerThread = new FaultManagerThread(faultManager, instanceStatusInfo.getInstanceId());
 						faultManagerThread.start();

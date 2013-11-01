@@ -11,10 +11,11 @@ public class EmptyDatabase {
 	private static final String truncate_assignments = "TRUNCATE Table Assignment;";
 	private static final String truncate_jobs = "DELETE FROM Job;";
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception{
 		System.out.println("THIS WILL DELETE EVERY JOB AND ASSIGNMENT, ARE YOU SURE (y/N):");
 		Scanner s = new Scanner(System.in);
 		String input = s.next();
+		s.close();
 		if(!input.equals("y") && !input.equals("Y")) {
 			System.out.println("Not doing a thing");
 			System.exit(0);
