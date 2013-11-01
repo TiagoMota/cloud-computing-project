@@ -53,7 +53,7 @@ public class SpotInstancesAllocator {
 		requestRequest.setSpotPrice(SPOT_PRICE);
 		requestRequest.setInstanceCount(instancesToAllocate);
 		LaunchSpecification launchSpecification = new LaunchSpecification();
-		launchSpecification.setImageId("ami-7738db00");
+		launchSpecification.setImageId("ami-836685f4");
 		launchSpecification.setInstanceType("t1.micro");
 		launchSpecification.setUserData(WORKER_SCRIPT);
 		ArrayList<String> securityGroups = new ArrayList<String>();
