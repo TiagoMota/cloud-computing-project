@@ -59,7 +59,7 @@ public class AllocationBenchmarkMonitor {
 				//Allocated VM
 				allocatedInstancesNum = Monitor.getInstance().getNumRunningOrPendingInstances();
 
-				result += completedJobsNumber + "," + uncompletedJobsNumber + "," + optimalInstanceNumber + "," + allocatedInstancesNum;
+				result = completedJobsNumber + "," + uncompletedJobsNumber + "," + optimalInstanceNumber + "," + allocatedInstancesNum + "\n";
 
 				fw.append(result);
 				fw.flush();
