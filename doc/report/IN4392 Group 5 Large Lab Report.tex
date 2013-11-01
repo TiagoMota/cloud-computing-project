@@ -130,7 +130,7 @@ The user can also configure this price/performance trade-off.
 
 \subsection{Experimental Setup}
 
-We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. All instances were running Ubuntu 13.10 (Linux kernel 3.8.0).
+We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in Table \ref{amazoninstancespec}. All instances were running Ubuntu 13.10 (Linux kernel 3.8.0).
 
 The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive. The OS and RDMS were both controlled by Amazon, we know only that a 64-bit Linux was used by checking the mysql status information. We configured RDS to use MySQL 5.6.13.
 
@@ -138,8 +138,9 @@ To keep tests as comparable as possible we used only one job: a 450 KB JPEG file
 
 \begin{savenotes}
 \begin{table}
+\caption{Amazon EC2 instance types}
+\label{amazoninstancespec}
 \centering
-
 \begin{tabular}{| l | l | l | l | l |}
 \hline
 Type & CPU\footnote{"One EC2 Compute Unit (ECU) provides the equivalent CPU capacity of a 1.0-1.2 GHz 2007 Opteron or 2007 Xeon processor." \cite{amazonecu}} & RAM & I/O speed & On-demand/Spot price\footnote{"The spot price varies due to demand, this is the minimum spot price which we used as the only price we wanted to rent spot instances."} \\ \hline
@@ -147,9 +148,6 @@ Micro & \textless 2 ECU & 0.6 GB & Low & 0.02/0.006 \$/hr \\ \hline
 Small & 1 ECU & 1.7 GB & Moderate & 0.065/0.016 \$/hr \\ \hline
 Medium & 2 ECU & 3.75 GB & Moderate & 0.13/0.032 \$/hr \\ \hline
 \end{tabular}
-
-\caption{Amazon EC2 instance types}
-\label{amazoninstancespec}
 \end{table}
 \end{savenotes}
 
@@ -171,8 +169,9 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 \end{figure}
 
 \begin{table}
+\caption{Average database job retrieval time}
+\label{dbperfresults}
 \centering
-
 \begin{tabular}{| l | l | l | l |}
 \hline
 \# Jobs & Micro & Small & Medium \\ \hline
@@ -182,9 +181,6 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 1000000 & 5,28s & 5,84s & 3,74s \\ \hline
 3000000	& 79,46s & 18,87s & 11,61s \\ \hline
 \end{tabular}
-
-\caption{Average database job retrieval time}
-\label{dbperfresults}
 \end{table}
 
 \subsection{Instance type selection}
@@ -208,8 +204,9 @@ Which puts the equivalence point at about 600,000 - 650,000 jobs, which would ma
 \end{figure}
 
 \begin{table}
+\caption{Average Tessaract job processing time}
+\label{tesperfresults}
 \centering
-
 \begin{tabular}{| l | l | l |}
 \hline
 Instance & Processing time & Cost / job (normal/spot) \\ \hline
@@ -218,9 +215,6 @@ Small & 93s & 0,00041 / 0,0017 \$ \\ \hline
 Medium & 45s & 0,00037 / 0,0016 \$ \\ \hline
 Laptop & 30s & n.a. \\ \hline
 \end{tabular}
-
-\caption{Average Tessaract job processing time}
-\label{tesperfresults}
 \end{table}
 
 \subsection{Allocation behavior}
