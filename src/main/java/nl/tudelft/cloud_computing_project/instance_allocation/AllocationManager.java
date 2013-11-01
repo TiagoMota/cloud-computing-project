@@ -26,33 +26,29 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.InstanceStateChange;
-import com.amazonaws.services.ec2.model.LaunchSpecification;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
-import com.amazonaws.services.ec2.model.StartInstancesRequest;
-import com.amazonaws.services.ec2.model.StartInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 
 public class AllocationManager {
 	
-	private final String delete_instance_assignment_sql 	
-			= "DELETE FROM Assignment "
-			+ "WHERE worker_instanceid = :instanceId";
+	private static final String 		delete_instance_assignment_sql 	= "DELETE FROM Assignment WHERE worker_instanceid = :instanceId";
+	private static final String 		PROVISIONING_POLICY_CLASS 		= (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
+	private static final int 			MAX_NORMAL_INSTANCES 			= Integer.parseInt((String)CloudOCR.Configuration.get("MAX_NORMAL_INSTANCES"));
 	
-	private static final String PROVISIONING_POLICY_CLASS = (String)CloudOCR.Configuration.get("PROVVISIONING_POLICY_CLASS");
-	private static final int MAX_NORMAL_INSTANCES = Integer.parseInt((String)CloudOCR.Configuration.get("MAX_NORMAL_INSTANCES"));
-	private static Base64 base64 = new Base64();
-	private static String WORKER_SCRIPT = new String(base64.encode("#!/bin/bash\njava -jar /home/ubuntu/Worker/worker.jar\nexit 0".getBytes()));
-	private static Logger LOG = LoggerFactory.getLogger(AllocationManager.class);
-	private static AllocationManager instance;
-	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
-	private Sql2o sql2o;
+	private static Base64 				base64 							= new Base64();
+	private static String 				WORKER_SCRIPT 					= new String(base64.encode("#!/bin/bash\njava -jar /home/ubuntu/Worker/worker.jar\nexit 0".getBytes()));
+	private static Logger 				LOG 							= LoggerFactory.getLogger(AllocationManager.class);
+	private static AllocationManager 	instance;
+	
+	private AmazonEC2 					ec2 							= AmazonEC2Initializer.getInstance();
+	private Map<String, Date> 			protectedInstances 				= new Hashtable<String, Date>(); 
+	private Sql2o 						sql2o;
 	private ProvisioningPolicyInterface provisioningPolicy;
-	private Map<String, Date> protectedInstances = new Hashtable<String, Date>(); 
+	
 
 	private AllocationManager(){
 		try {
@@ -212,29 +208,37 @@ public class AllocationManager {
 			//Decide which instances to terminate
 			for (Instance instance : instances) {
 				
-				LOG.debug("ID " + instance.getInstanceId() + ", TAGs:" + instance.getTags().toString());
+				//Only terminate running machines
+				if(!instance.getState().getName().equals("running"))
+					continue;
+				
 				//Continue if: a non cloudOCR instance is being analyzed
 				boolean isCloudOCR = false;
-				for (Tag tag : instance.getTags()){
-					if(tag.getKey().equals("cloudocr")) {
-						isCloudOCR = true;
-						continue;
+				
+				if(instance.getTags().isEmpty())
+					isCloudOCR = true;
+				else {
+					for (Tag tag : instance.getTags()){
+						if(!tag.getKey().equals("test")) {
+							isCloudOCR = true;
+							continue;
+						}
 					}
 				}
 				
 				if(!isCloudOCR){
-					LOG.debug(instance.getInstanceId() + ": skipped no cloudocr");
+					LOG.debug(instance.getInstanceId() + ": skipped, no cloudocr");
 					continue;
 				} else {
 					//If onlySpotInstances is true then deallocate ONLY Spot Instances
 					if (onlySpotInstances) {
-						if (!instance.getTags().contains(new Tag().withKey("cloudocr").withValue("spotinstance"))) {
-							LOG.debug(instance.getInstanceId() + ": skipped no spotinstance");
+						if (!instance.getTags().isEmpty()) {
+							LOG.debug(instance.getInstanceId() + ": skipped, no spotinstance");
 							continue;
 						}
 					//Else deallocate it unless its the Master
 					} else {
-						if (instance.getTags().contains(new Tag().withKey("cloudocr").withValue("master")) || instance.getTags().contains(new Tag().withKey("Name").withValue("cloudocr-worker-setup")) ) {
+						if (instance.getTags().contains(new Tag().withKey("cloudocr").withValue("master"))) {
 							LOG.debug(instance.getInstanceId() + ": skipped master");
 							continue;
 						}

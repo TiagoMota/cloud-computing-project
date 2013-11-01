@@ -8,12 +8,15 @@
 %\usepackage{verbatim}
 %\usepackage{textcomp}
 \usepackage{pdflscape}
+\usepackage{footnote}
 
 \usepackage{graphicx}
 \graphicspath{ {images/} }
 
 \title{CloudOCR: Cloud Computing Large Lab Assignment}
 \author{Tiago Mota, Eddy Bertoluzzo, David Hoepelman}
+
+\makesavenoteenv{tabular} 
 
 \begin{document}
 
@@ -125,20 +128,67 @@ The user can also configure this price/performance trade-off.
 
 \section{Experimantal results}
 
-\subsection{Setup}
+\subsection{Experimental Setup}
 
-We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}
+We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive.
 
+\begin{savenotes}
 \begin{table}
 \centering
-\begin{tabular}{| l | l | l | l |}
-Type & CPU (ECU\footnote{One EC2 Compute Unit (ECU) provides the equivalent CPU capacity of a 1.0-1.2 GHz 2007 Opteron or 2007 Xeon processor.}) & a\\ \hline
+
+\begin{tabular}{| l | l | l | l | l |}
+\hline
+Type & CPU\footnote{"One EC2 Compute Unit (ECU) provides the equivalent CPU capacity of a 1.0-1.2 GHz 2007 Opteron or 2007 Xeon processor." \cite{amazonecu}} & RAM & I/O speed & On-demand/Spot price\footnote{"The spot price varies due to demand, this is the minimum spot price which we used as the only price we wanted to rent spot instances."} \\ \hline
+Micro & \textless 2 ECU & 0.6 GB & Low & 0.02/0.006 \$/hr \\ \hline
+Small & 1 ECU & 1.7 GB & Moderate & 0.065/0.016 \$/hr \\ \hline
+Medium & 2 ECU & 3.75 GB & Moderate & 0.13/0.032 \$/hr \\ \hline
 \end{tabular}
+
 \caption{Amazon EC2 instance types}
 \label{amazoninstancespec}
 \end{table}
+\end{savenotes}
 
-\subsection{Database performance}
+\subsection{Experiments}
+
+\subsubsection{Database performance}
+
+We use a relation database (MySQL) to store our jobs and assignments. As such the database becomes our most probable bottleneck for scaling. We tested the Amazon RDS database performance with databases containing a different number of jobs and executed the query that is needed to retrieve the jobs for scheduling. To accurately test the bottleneck we retrieved all jobs instead of a number dependent on the number of workers (as the scheduler would do).
+
+We ran the test concurrently from the same VM to the different instance types to make sure environmental factors were minimized. Our own test had previously shown that running the tests concurrently does not have a significant influence on the results. We ran each test 50 times and report the average.
+
+As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig_dbperfresults} database overhead only becomes noticeable around 100,000 jobs and only becomes significant starting at a million jobs. As we configured the scheduler to retrieve 10 jobs per active worker this would mean 100,000 workers. We thus conclude that database overhead is not a bottleneck for the scaling of our application.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{"results-database"}
+\caption{Average database job retrieval time}
+\label{fig_dbperfresults}
+\end{figure}
+
+\begin{table}
+\centering
+
+\begin{tabular}{| l | l | l | l |}
+\hline
+Job \# & Micro & Small & Medium \\ \hline
+1000 & 0,004s &	0,003s & 0,007s \\ \hline
+10000 & 0,025s & 0,025s & 0,026s \\ \hline
+100000 & 0,31s & 0,52s & 0,37s \\ \hline
+1000000 & 5,28s & 5,84s & 3,74s \\ \hline
+3000000	& 79,46s & 18,87s & 11,61s \\ \hline
+\end{tabular}
+
+\caption{Average database job retrieval time}
+\label{dbperfresults}
+\end{table}
+
+%1000	0,004466205	0,003440447	0,00675025
+%10000	0,025333052	0,024690909	0,025999541
+%100000	0,311565404	0,523300591	0,368763666
+%1000000	5,281446206	5,844649515	3,740055547
+%3000000	79,46405615	18,87160167	11,61349688
+
 
 \subsection{Instance type selection}
 
@@ -153,6 +203,10 @@ Type & CPU (ECU\footnote{One EC2 Compute Unit (ECU) provides the equivalent CPU 
 \bibitem{kleinberg2006}{
  Algorithm design: Chapter 11, \emph{Kleinberg, Jon and Tardos, Éva}, Pearson/Addison Wesley, Boston (Mass.), ISBN: 0-321-37291-3
  }
+ 
+\bibitem{amazonecu}{
+	Amazon EC2 instance description page:  \url{http://aws.amazon.com/ec2/#instance}
+}
 \end{thebibliography}
 
 \appendix{Time spent}
