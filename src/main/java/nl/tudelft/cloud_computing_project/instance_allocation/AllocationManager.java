@@ -90,7 +90,7 @@ public class AllocationManager {
 
 	}
 	
-	public void applyProvvisioningPolicy() {
+	public void applyProvisioningPolicy() {
 		
 		LOG.info("Applying provisioning policy");
 		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
@@ -279,7 +279,7 @@ public class AllocationManager {
 				int firstKey = orderedInstances.firstKey();
 				
 				//Do not terminate any if they still have a lot of time before charging
-				if(firstKey > 5) {
+				if(firstKey > 50) {
 					if(!onlySpotInstances)
 						return terminatedInstancesCount;
 					else

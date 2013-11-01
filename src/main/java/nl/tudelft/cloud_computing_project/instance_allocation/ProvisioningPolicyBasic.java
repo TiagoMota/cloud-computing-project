@@ -1,6 +1,8 @@
 package nl.tudelft.cloud_computing_project.instance_allocation;
 
 
+import javax.management.RuntimeErrorException;
+
 import nl.tudelft.cloud_computing_project.CloudOCR;
 import nl.tudelft.cloud_computing_project.Monitor;
 import nl.tudelft.cloud_computing_project.model.Database;
@@ -66,7 +68,9 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 			
 			if(openedSpotRequests > toBeAllocatedInstanceNumber) {
 				
+				LOG.info("Deleting Spot Instances Requests: " + (openedSpotRequests - toBeAllocatedInstanceNumber));
 				SpotInstancesAllocator.getInstance().cancelSpotInstancesRequests(openedSpotRequests - toBeAllocatedInstanceNumber);
+				LOG.info("Succesfully deleted Spot Instances Requests: " + (openedSpotRequests - toBeAllocatedInstanceNumber));
 				return 0;
 				
 			} else {
@@ -77,7 +81,7 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 			
 		}
 		
-		return 0;
+		throw new RuntimeException("Provision Policy method: should never get here!");
 		
 	}
 

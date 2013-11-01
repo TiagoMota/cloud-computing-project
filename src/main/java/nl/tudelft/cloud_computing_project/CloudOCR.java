@@ -93,7 +93,7 @@ public class CloudOCR {
 				while(true){
 					try {
 						LOG.info("AllocationManager Thread started.");
-						am.applyProvvisioningPolicy();
+						am.applyProvisioningPolicy();
 						Thread.sleep(allocation_interval);
 					} catch (InterruptedException e) {
 						LOG.warn("AllocationManagerThread sleep was interrupted", e);
