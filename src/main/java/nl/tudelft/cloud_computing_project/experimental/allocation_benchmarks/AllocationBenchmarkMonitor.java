@@ -29,60 +29,59 @@ public class AllocationBenchmarkMonitor {
 
 	
 	public static void monitorAllocationBenchmark() {
-		
-		int completedJobsNumber;
-		int uncompletedJobsNumber;
-		int allocatedInstancesNum;
-		int optimalInstanceNumber;
-		String result = "";
-		Table jobsDBInfo;
-		FileWriter fw;
-		
-		boolean completedAllJobs = false;
-		
-		
-		
-		while (!completedAllJobs) {
-			
-			//Completed Jobs
-			sql2o = Database.getConnection();
-			jobsDBInfo = sql2o.createQuery(get_completed_jobs_number).executeAndFetchTable();
-			completedJobsNumber = jobsDBInfo.rows().get(0).getInteger("completedjobs");
-			
-			//Uncompleted Jobs
-			sql2o = Database.getConnection();
-			jobsDBInfo = sql2o.createQuery(get_uncompleted_jobs_number).executeAndFetchTable();
-			uncompletedJobsNumber = jobsDBInfo.rows().get(0).getInteger("uncompletedjobs");
-			
-			//Optimal VM number
-			optimalInstanceNumber = (int) Math.ceil((double)uncompletedJobsNumber/(double)AVG_EXECUTABLE_JOBS_PER_MACHINE_PER_HOUR);
-			
-			//Allocated VM
-			allocatedInstancesNum = Monitor.getInstance().getNumRunningOrPendingInstances();
-			
-			result += completedJobsNumber + "," + uncompletedJobsNumber + "," + optimalInstanceNumber + "," + allocatedInstancesNum;
-			
-			//Condition for termination
-			if(uncompletedJobsNumber == 0)
-				completedAllJobs = true;
-			
-			try {
-				Thread.sleep(60000);
-			} catch (InterruptedException e) {
-				System.err.println("monitorAllocationBenchmark nterrupted while sleeping");
-			}
-		}
-		
+
 		try {
-			fw = new FileWriter(new File("Allocation_Benchmark_Output.csv"));
-			fw.append(result);
-			fw.flush();
+			int completedJobsNumber;
+			int uncompletedJobsNumber;
+			int allocatedInstancesNum;
+			int optimalInstanceNumber;
+			Table jobsDBInfo;
+
+			FileWriter fw = new FileWriter(new File("Allocation_Benchmark_Output.csv"));
+			String result = "";
+			boolean completedAllJobs = false;
+
+			while (!completedAllJobs) {
+
+				//Completed Jobs
+				sql2o = Database.getConnection();
+				jobsDBInfo = sql2o.createQuery(get_completed_jobs_number, "get_completed_jobs_number").executeAndFetchTable();
+				completedJobsNumber = jobsDBInfo.rows().get(0).getInteger("completedjobs");
+
+				//Uncompleted Jobs
+				sql2o = Database.getConnection();
+				jobsDBInfo = sql2o.createQuery(get_uncompleted_jobs_number, "get_uncompleted_jobs_number").executeAndFetchTable();
+				uncompletedJobsNumber = jobsDBInfo.rows().get(0).getInteger("uncompletedjobs");
+
+				//Optimal VM number
+				optimalInstanceNumber = (int) Math.ceil((double)uncompletedJobsNumber/(double)AVG_EXECUTABLE_JOBS_PER_MACHINE_PER_HOUR);
+
+				//Allocated VM
+				allocatedInstancesNum = Monitor.getInstance().getNumRunningOrPendingInstances();
+
+				result += completedJobsNumber + "," + uncompletedJobsNumber + "," + optimalInstanceNumber + "," + allocatedInstancesNum;
+
+				fw.append(result);
+				fw.flush();
+
+				//Condition for termination
+				if(uncompletedJobsNumber == 0)
+					completedAllJobs = true;
+
+				try {
+					Thread.sleep(60000);
+				} catch (InterruptedException e) {
+					System.err.println("monitorAllocationBenchmark nterrupted while sleeping");
+				}
+			}
+
 			fw.close();
-		} catch (Exception e) {
-			System.err.println("Error in writing results on file: " + e.getMessage());
+
+		}
+		catch (Exception e) {
+			System.err.println("Error in writing results: " + e.getMessage());
 			e.printStackTrace();
 		} 
-		
 	}
 	
 }

@@ -277,6 +277,11 @@ public class AllocationManager {
 				
 				//Determinate which instance to terminate
 				int firstKey = orderedInstances.firstKey();
+				
+				//Do not terminate any if they still have a lot of time before charging
+				if(firstKey > 5)
+					break;
+				
 				List<String> instanceList = orderedInstances.get(firstKey);
 				
 				while (!instanceList.isEmpty() && terminatedInstancesCount < instancesToTerminateNum) {

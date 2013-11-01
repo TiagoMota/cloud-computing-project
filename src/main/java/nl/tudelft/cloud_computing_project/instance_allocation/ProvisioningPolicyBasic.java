@@ -34,7 +34,7 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 		
 		//get Jobs Info from DB
 		sql2o = Database.getConnection();
-		Table jobsDBInfo = sql2o.createQuery(get_jobs_info).executeAndFetchTable();
+		Table jobsDBInfo = sql2o.createQuery(get_jobs_info, "get_jobs_info").executeAndFetchTable();
 
 		int availableJobs = jobsDBInfo.rows().get(0).getInteger("availablejobs");
 		
