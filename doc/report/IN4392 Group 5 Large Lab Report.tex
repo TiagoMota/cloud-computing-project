@@ -223,13 +223,6 @@ To check which instance type would be the best to use for our workers we ran the
 
 Our main findings are that the chosen instance type does not greatly influence the price per job if spot instances are used. For production uses we would have chosen the medium instance (and tested other instances to see if they were even cheaper). However to reap the benefits of the free resources provided by Amazon\footnote{Amazon AWS has a "free usage tier" which among other consists of 750 free EC2 micro instance hours and 750 free micro RDS instance hours} we chose to use micro instances in all our development and experiments.
 
-Based on these results we also do \emph{a rough estimate} on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
-$$
-750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.00037\$ \cdot \text{\#jobs}
-$$
-
-Which puts the equivalence well over a million jobs, which would make the desktop run for well over a year. This even excludes other costs like maintance and network infrastructure. All in all this means that a cloud solution is very attractive compared to getting your own machines.
-
 \begin{figure}
 \centering
 \includegraphics[width=0.5\textwidth]{"results-tesseract"}
@@ -269,6 +262,13 @@ As can be seen clearly from the results our application closely follows the conf
  
 
 \section{Discussion}
+
+Based on these results we also do \emph{a rough estimate} on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
+$$
+750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.00037\$ \cdot \text{\#jobs}
+$$
+
+Which puts the equivalence well over a million jobs, which would make the desktop run for well over a year. This even excludes other costs like maintance and network infrastructure. All in all this means that a cloud solution is very attractive compared to getting your own machines.
 
 	\begin{table}
 	\caption{Extrapolation of charged-costs}
