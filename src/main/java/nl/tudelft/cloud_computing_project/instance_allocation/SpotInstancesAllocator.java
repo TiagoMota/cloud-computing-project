@@ -180,14 +180,19 @@ public class SpotInstancesAllocator {
 			int openedSpotInstanceRequestsNumber = 0;
 			
 			int i = 0;
-			while (i < requestsToBeDeleted) {
-				if(requestList.get(i).getState().equals("open")) {
+			for (SpotInstanceRequest request : requestList) { 
+				
+				if(i >= requestsToBeDeleted)
+					break;
+				
+				if(request.getState().equals("open")) {
 					i++;
 					openedSpotInstanceRequestsNumber++;
-					String idToBeRemoved = requestList.get(i).getSpotInstanceRequestId();
+					String idToBeRemoved = request.getSpotInstanceRequestId();
 					removeFromSpotInstanceRequestIds(idToBeRemoved);
 					deleteSpotInstanceRequestIds.add(idToBeRemoved);
 				}
+				
 			}
 			
 			//Cancel requests.

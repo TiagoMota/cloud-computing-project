@@ -90,7 +90,7 @@ public class AllocationManager {
 
 	}
 	
-	public void applyProvvisioningPolicy() {
+	public void applyProvisioningPolicy() {
 		
 		LOG.info("Applying provisioning policy");
 		int provisioningPolicyResult = provisioningPolicy.applyProvisioningPolicy();
