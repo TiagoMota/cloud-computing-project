@@ -1,9 +1,5 @@
 package nl.tudelft.cloud_computing_project;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import nl.tudelft.cloud_computing_project.model.Database;
 
 import org.slf4j.Logger;
@@ -12,10 +8,6 @@ import org.sql2o.Sql2o;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 
@@ -59,25 +51,6 @@ public class FaultManager {
 	public void WorkerFailure(String instanceId){
 		try {
 			
-			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
-			List<Reservation> reservations = describeInstancesRequest.getReservations();
-			Set<Instance> instances = new HashSet<Instance>();
-
-			for (Reservation reservation : reservations) 
-				instances.addAll(reservation.getInstances());
-
-			//Decide if to terminate an instances
-			for (Instance instance : instances) {
-				
-				if (instance.getInstanceId().equals(instanceId))
-					if(!instance.getTags().contains(new Tag().withKey("cloudocr"))) {
-						LOG.debug(instance.getInstanceId() + " not terminated becouse not yet identified.");
-						return;
-					}
-				
-				
-			}
-			
 			//Terminates the failing machine and logs the information
 			TerminateInstancesRequest terminateRequest = new TerminateInstancesRequest().withInstanceIds(instanceId);
 			TerminateInstancesResult terminateResult = ec2.terminateInstances(terminateRequest);
@@ -104,8 +77,12 @@ public class FaultManager {
 	 * This method sets the status of a job to FAILED if it fails more than a fixed amount if time.
 	 */
 	public void manageFailingJobs() {
-		sql2o = Database.getConnection();
-		sql2o.createQuery(manage_failing_jobs_sql, "manage_failing_jobs_sql").addParameter("MAX_NUM_FAILURE", MAX_NUM_FAILURE).executeUpdate();
+		try {
+			sql2o = Database.getConnection();
+			sql2o.createQuery(manage_failing_jobs_sql, "manage_failing_jobs_sql").addParameter("MAX_NUM_FAILURE", MAX_NUM_FAILURE).executeUpdate();
+		} catch (Exception e) {
+			LOG.warn(e.getMessage());
+		}
 
 	}
 	

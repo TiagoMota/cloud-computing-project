@@ -1,8 +1,10 @@
 package nl.tudelft.cloud_computing_project.instance_allocation;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import nl.tudelft.cloud_computing_project.AmazonEC2Initializer;
 import nl.tudelft.cloud_computing_project.CloudOCR;
@@ -32,8 +34,8 @@ public class SpotInstancesAllocator {
 	private static String WORKER_SCRIPT = new String(base64.encode("#!/bin/bash\njava -jar /home/ubuntu/Worker/worker.jar\nexit 0".getBytes()));
 	private static Logger LOG = LoggerFactory.getLogger(SpotInstancesAllocator.class);
 	private static SpotInstancesAllocator instance;
+	private static List<String> spotInstanceRequestIds = Collections.synchronizedList(new ArrayList<String>());
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
-	private ArrayList<String> spotInstanceRequestIds;
 
 	private SpotInstancesAllocator(){}
 
@@ -42,7 +44,6 @@ public class SpotInstancesAllocator {
 		return instance;
 	}
 	
-	// TODO finish monitoring in a thread
 	public void requestSpotInstances (int instancesToAllocate) {
 		
 		if(instancesToAllocate == 0) return;
@@ -64,57 +65,60 @@ public class SpotInstancesAllocator {
 		RequestSpotInstancesResult requestResult = ec2.requestSpotInstances(requestRequest);
 		List<SpotInstanceRequest> requestResponses = requestResult.getSpotInstanceRequests();
 
-		spotInstanceRequestIds = new ArrayList<String>();
-
 		for (SpotInstanceRequest requestResponse : requestResponses) {
 			LOG.info("Created Spot Request: "+requestResponse.getSpotInstanceRequestId());
-			spotInstanceRequestIds.add(requestResponse.getSpotInstanceRequestId());
+			addToSpotInstanceRequestIds(requestResponse.getSpotInstanceRequestId());
 		}
 
-		monitorSpotInstancesRequests();
-
+	}
+	
+	public synchronized void addToSpotInstanceRequestIds(String requestId) {
+		spotInstanceRequestIds.add(requestId);
+	}
+	
+	public synchronized void removeFromSpotInstanceRequestIds(String requestId) {
+		spotInstanceRequestIds.remove(requestId);
 	}
 
-	private void monitorSpotInstancesRequests() {
+	public void monitorSpotInstancesRequests() {
 
+		if(spotInstanceRequestIds.isEmpty())
+			return;
+		
 		// Retrieve all of the requests we want to monitor.
 		DescribeSpotInstanceRequestsRequest describeRequest = new DescribeSpotInstanceRequestsRequest();
 		DescribeSpotInstanceRequestsResult describeResult = ec2.describeSpotInstanceRequests(describeRequest);
 		List<SpotInstanceRequest> describeResponses = describeResult.getSpotInstanceRequests();
 		
 		//Exit if there are no active requests
-		if(describeResponses == null) 
+		if(describeResponses == null || describeResponses.size() == 0) 
 			return;
 		
-		while (!describeResponses.isEmpty()) {
-
-			Collection<SpotInstanceRequest> fulfilledRequests = new ArrayList<SpotInstanceRequest>();
-
-			// Look through each request and determine if they are all in the active state.
-			for (SpotInstanceRequest describeResponse : describeResponses) {
-				if(describeResponse.getState().equals("active")) {
-					fulfilledRequests.add(describeResponse);
-					String instanceId = describeResponse.getInstanceId();
-					AllocationManager.getInstance().setProtectedInstance(instanceId);
-					tagInstance(instanceId);
-					LOG.info("Spot Request fulfilled: 1 spot instance created");
-				}
-			}
-
-			for(SpotInstanceRequest request : fulfilledRequests) 
-				describeResponses.remove(request);
+		for(SpotInstanceRequest describeResponse : describeResponses) {
 			
-			try {
-				// Sleep for 5 seconds.
-				Thread.sleep(5*1000);
-			} catch (Exception e) {
-				// Do nothing because it woke up early.
+			if(describeResponse.getState().equals("active")) {
+				
+				String instanceId = describeResponse.getInstanceId();
+				AllocationManager am = AllocationManager.getInstance();
+				Map<String, Date> protectedInstances = am.getProtectedInstance();
+				long startTime = describeResponse.getCreateTime().getTime();
+				long currentTime = new Date().getTime();
+				
+				LOG.info("Updating spot instances information: " + instanceId);
+				
+				if(!protectedInstances.containsKey(instanceId) && (startTime > (currentTime - (5 * 60000)))) {
+					AllocationManager.getInstance().setProtectedInstance(instanceId);
+					removeFromSpotInstanceRequestIds(instanceId);
+				}
+				
+				//LOG.info("Spot Requests: 1 spot instance created");
 			}
-
-		} 
-
+			
+		}
+		
 	}
-
+	
+	//UNUSED
 	private void tagInstance(String instanceId) {
 		// Tag the created instances
 		Tag tag = new Tag().withKey("cloudocr").withValue("spotinstance");
@@ -129,21 +133,29 @@ public class SpotInstancesAllocator {
 	public void cancelSpotInstancesRequests() {
 		try {
 			
+			if(spotInstanceRequestIds.isEmpty())
+				return;
+			
 			DescribeSpotInstanceRequestsRequest spotInstanceRequestsRequest = new DescribeSpotInstanceRequestsRequest();
 			DescribeSpotInstanceRequestsResult spotInstanceRequestsResult = ec2.describeSpotInstanceRequests(spotInstanceRequestsRequest);
 			List<SpotInstanceRequest> requestList = spotInstanceRequestsResult.getSpotInstanceRequests();
 			
-			spotInstanceRequestIds = new ArrayList<String>();
+			ArrayList<String> deleteSpotInstanceRequestIds = new ArrayList<String>();
+			int openedSpotInstanceRequestsNumber = 0;
+			
 			for (SpotInstanceRequest request : requestList) {
-				spotInstanceRequestIds.add(request.getSpotInstanceRequestId());
+				if(request.getState().equals("open"))
+					openedSpotInstanceRequestsNumber++;
+				removeFromSpotInstanceRequestIds(request.getSpotInstanceRequestId());
+				deleteSpotInstanceRequestIds.add(request.getSpotInstanceRequestId());
 			}
 			
 			//Cancel requests.
-			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(spotInstanceRequestIds);
+			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(deleteSpotInstanceRequestIds);
 			CancelSpotInstanceRequestsResult cancelResult = ec2.cancelSpotInstanceRequests(cancelRequest);
 			List<CancelledSpotInstanceRequest> cancelledRequests = cancelResult.getCancelledSpotInstanceRequests(); 
 
-			LOG.info("Cancelled " + cancelledRequests.size() + "Spot Instance Requests.");
+			LOG.info("Cancelled " + cancelledRequests.size() + " Spot Instance Requests ("+ openedSpotInstanceRequestsNumber +" opened)");
 
 		} catch (AmazonServiceException e) {
 			LOG.warn("Error canceling instances");
@@ -157,20 +169,31 @@ public class SpotInstancesAllocator {
 	public void cancelSpotInstancesRequests(int n) {
 		try {
 			
+			if(spotInstanceRequestIds.isEmpty())
+				return;
+			
 			DescribeSpotInstanceRequestsRequest spotInstanceRequestsRequest = new DescribeSpotInstanceRequestsRequest();
 			DescribeSpotInstanceRequestsResult spotInstanceRequestsResult = ec2.describeSpotInstanceRequests(spotInstanceRequestsRequest);
 			List<SpotInstanceRequest> requestList = spotInstanceRequestsResult.getSpotInstanceRequests();
 			
-			spotInstanceRequestIds = new ArrayList<String>();
-			for (int i = 0; i < n; i++)
-				spotInstanceRequestIds.add(requestList.get(i).getSpotInstanceRequestId());
+			ArrayList<String> deleteSpotInstanceRequestIds = new ArrayList<String>();
+			int openedSpotInstanceRequestsNumber = 0;
+
+			for (int i = 0; i < n; i++) {
+				if(requestList.get(i).getState().equals("open")) {
+					openedSpotInstanceRequestsNumber++;
+					String idToBeRemoved = requestList.get(i).getSpotInstanceRequestId();
+					removeFromSpotInstanceRequestIds(idToBeRemoved);
+					deleteSpotInstanceRequestIds.add(idToBeRemoved);
+				}
+			}
 			
 			//Cancel requests.
-			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(spotInstanceRequestIds);
+			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(deleteSpotInstanceRequestIds);
 			CancelSpotInstanceRequestsResult cancelResult = ec2.cancelSpotInstanceRequests(cancelRequest);
 			List<CancelledSpotInstanceRequest> cancelledRequests = cancelResult.getCancelledSpotInstanceRequests(); 
 
-			LOG.info("Cancelled " + cancelledRequests.size() + "Spot Instance Requests.");
+			LOG.info("Deleted " + cancelledRequests.size() + "Spot Instance Requests ("+ openedSpotInstanceRequestsNumber +" opened)");
 
 		} catch (AmazonServiceException e) {
 			LOG.warn("Error canceling instances");
@@ -184,8 +207,12 @@ public class SpotInstancesAllocator {
 	public int getNumOpenedSpotInstancesRequests() {
 		
 		int openedSpotInstancesRequests = 0;
+		int skippedRequests = 0;
 		
 		// Retrieve all of the requests
+		if(spotInstanceRequestIds.isEmpty())
+			return openedSpotInstancesRequests;
+		
 		DescribeSpotInstanceRequestsRequest describeRequest = new DescribeSpotInstanceRequestsRequest();
 		DescribeSpotInstanceRequestsResult describeResult = ec2.describeSpotInstanceRequests(describeRequest);
 		List<SpotInstanceRequest> describeResponses = describeResult.getSpotInstanceRequests();
@@ -194,11 +221,15 @@ public class SpotInstancesAllocator {
 			if(describeResponse.getState().equals("open"))
 				openedSpotInstancesRequests++;
 			
-			else if(describeResponse.getState().equals("active"))
+			else if(describeResponse.getState().equals("active")) {
 				if(!describeResponse.getStatus().equals("fulfilled"))
 					openedSpotInstancesRequests++;
-
+			}
+			else
+				skippedRequests++;
 		}
+		
+		LOG.debug("getNumOpenedSpotInstancesRequests - Skipped requests (for non active/open): " + skippedRequests);
 		
 		return openedSpotInstancesRequests;
 	}

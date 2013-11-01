@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.TreeSet;
 
 import nl.tudelft.cloud_computing_project.model.*;
 
@@ -168,7 +167,7 @@ public class Scheduler {
 	 * @return The assignments
 	 */
 	protected Collection<Assignment> schedule_greedy_lb() {
-		LOG.debug("Using greedy load-balancing algorithm");
+		//LOG.debug("Using greedy load-balancing algorithm");
 		
 		// Make a sorted datastructure that sorts the workers on their load
 		PriorityQueue<Worker> workers = new PriorityQueue<Worker>(this.workers.size()+1, new Comparator<Worker>() {
@@ -218,7 +217,7 @@ public class Scheduler {
 	 * Assign jobs to workers
 	 */
 	public void schedule() {
-		LOG.info("Starting scheduler");
+		//LOG.info("Starting scheduler");
 		
 		sql2o = Database.getConnection();	
 		pullWorkerInfo();
