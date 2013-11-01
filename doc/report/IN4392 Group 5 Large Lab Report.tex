@@ -1,0 +1,227 @@
+\documentclass[a4paper]{IEEEtran}
+
+\usepackage[fleqn]{amsmath}
+%\usepackage{amsfonts}
+%\usepackage{algorithm}% http://ctan.org/pkg/algorithms
+%\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+\usepackage{hyperref}
+%\usepackage{verbatim}
+%\usepackage{textcomp}
+\usepackage{pdflscape}
+\usepackage{footnote}
+
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+
+\title{CloudOCR: Cloud Computing Large Lab Assignment}
+\author{Tiago Mota, Eddy Bertoluzzo, David Hoepelman}
+
+\makesavenoteenv{tabular} 
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+Blah
+\end{abstract}
+
+\section{Introduction}
+
+\subsection{Application selection}
+
+Our use case is a library that has already digitized its paper collection. They find out they also want to OCR the collection so they can better search through it. Cost should be as low as possible, but there are little time constraints. One exception is new books, these should be digitized within a reasonable time. 
+
+\section{System Design}
+
+\subsection*{Global overview}
+
+Our system uses a single master server that takes care of managment. Jobs (book pages) are distributed over workers, implemented as VMs. To keep the cost low we use spot instances.
+
+A diagram of our high-level system design can be found in Figure \ref{fig_sysarch}.
+We introduce the components:
+
+\begin{LaTeXdescription}
+
+\item[Front-End] The front end interface where jobs can be submitted, and a priority can be assigned. We used a simple Java program to add jobs.
+
+\item[Job queue] The job queue holds jobs that still need to be processed and meta-information like priority and number of faults. It is sorted on priority. We implemented this using a MySQL database.
+
+\item[Job Scheduler]
+
+The scheduler assigns jobs to workers and contains the logic for \textbf{load balacing}. It uses a \textbf{greedy on-line load-balancing} algorithm \cite{kleinberg2006} to assign jobs to workers until a predefined maximum per worker. The scheduler is run at regular intervals to assign jobs that are under the predefined maximum.
+
+\item[Workers]
+
+A worker executes a job. They are implemented as Amazon EC2 instances running a common AMI having the open source OCR software Tesseract installed.
+
+\item[System Monitor]
+
+The system monitor \textbf{monitors} characteristics of the workers which other components can use.
+
+\item[Fault Manager]
+
+The fault manager listens to fault information and handles accordingly. A failed job is resubmitted to the job queue and failing VMs are shutdown (if not already). A job that consistently fails is not resubmitted and logged.
+
+\item[Allocation Manager]
+
+The Allocation Manager receives utilization information. Resources are allocated based on current available jobs. Spot instances are allocated when the price is low enough.
+
+\end{LaTeXdescription}
+
+\subsection*{Resource managment}
+
+\begin{LaTeXdescription}
+\item[Automation]
+
+Most of the system is automated, only job submitting and inspecting faulty jobs is a manual task.
+
+\item[Elasticity]
+
+The \textbf{Allocation Manager} handles the allocation of resources and should be able to scale well. The master itself is not scaled.
+
+\item[Performance]
+
+The \textbf{Job Scheduler} takes care of load balancing.
+
+\item[Reliability]
+
+The system uses a master-slave architecture. The master contains all of the managment codes, while the slaves (workers) process the jobs. Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handles failures in VMs and jobs.
+
+Reliability for the master is not provided.
+
+\item[Monitoring]
+
+A dedicated monitoring subsystem monitors the workers and aggregates information, which can be logged if necessary.
+
+\end{LaTeXdescription}
+
+\subsection*{System Policies}
+
+\begin{LaTeXdescription}
+
+\item[Job Allocation]
+
+Jobs can be give a priority by the user. Jobs will only be chosen by the scheduler when no higher-priority jobs are available. Jobs with the same priority are chosen in the order the were submitted to prevent starvation.
+
+\item[Resource Allocation]
+
+A configurable minimum throughput is maintained. There is no upper limit on allocated resources, if enough jobs are available and the price of spot instances is low enough.
+
+\end{LaTeXdescription}
+
+\subsection*{Additional System Features}
+
+\begin{LaTeXdescription}
+
+\item[Scheduling]
+
+The solution focuses on efficient scheduling to minimize the total cost. This is done by the Allocation Manager which utilizes spot instances to keep the price as low as possible, while maintaining a minimal throughput. The user can configure this price/performance trade-off.
+
+\item[Durability]
+
+\emph{note: if time allows}. The systems saves the OCR'ed images compressed for collecting by the users. After a certain time results are relocated to long-term low-cast storage.
+
+\end{LaTeXdescription}
+
+\section{Experimantal results}
+
+\subsection{Experimental Setup}
+
+We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive.
+
+\begin{savenotes}
+\begin{table}
+\centering
+
+\begin{tabular}{| l | l | l | l | l |}
+\hline
+Type & CPU\footnote{"One EC2 Compute Unit (ECU) provides the equivalent CPU capacity of a 1.0-1.2 GHz 2007 Opteron or 2007 Xeon processor." \cite{amazonecu}} & RAM & I/O speed & On-demand/Spot price\footnote{"The spot price varies due to demand, this is the minimum spot price which we used as the only price we wanted to rent spot instances."} \\ \hline
+Micro & \textless 2 ECU & 0.6 GB & Low & 0.02/0.006 \$/hr \\ \hline
+Small & 1 ECU & 1.7 GB & Moderate & 0.065/0.016 \$/hr \\ \hline
+Medium & 2 ECU & 3.75 GB & Moderate & 0.13/0.032 \$/hr \\ \hline
+\end{tabular}
+
+\caption{Amazon EC2 instance types}
+\label{amazoninstancespec}
+\end{table}
+\end{savenotes}
+
+\subsection{Experiments}
+
+\subsubsection{Database performance}
+
+We use a relation database (MySQL) to store our jobs and assignments. As such the database becomes our most probable bottleneck for scaling. We tested the Amazon RDS database performance with databases containing a different number of jobs and executed the query that is needed to retrieve the jobs for scheduling. To accurately test the bottleneck we retrieved all jobs instead of a number dependent on the number of workers (as the scheduler would do).
+
+We ran the test concurrently from the same VM to the different instance types to make sure environmental factors were minimized. Our own test had previously shown that running the tests concurrently does not have a significant influence on the results. We ran each test 50 times and report the average.
+
+As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig_dbperfresults} database overhead only becomes noticeable around 100,000 jobs and only becomes significant starting at a million jobs. As we configured the scheduler to retrieve 10 jobs per active worker this would mean 100,000 workers. We thus conclude that database overhead is not a bottleneck for the scaling of our application.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{"results-database"}
+\caption{Average database job retrieval time}
+\label{fig_dbperfresults}
+\end{figure}
+
+\begin{table}
+\centering
+
+\begin{tabular}{| l | l | l | l |}
+\hline
+Job \# & Micro & Small & Medium \\ \hline
+1000 & 0,004s &	0,003s & 0,007s \\ \hline
+10000 & 0,025s & 0,025s & 0,026s \\ \hline
+100000 & 0,31s & 0,52s & 0,37s \\ \hline
+1000000 & 5,28s & 5,84s & 3,74s \\ \hline
+3000000	& 79,46s & 18,87s & 11,61s \\ \hline
+\end{tabular}
+
+\caption{Average database job retrieval time}
+\label{dbperfresults}
+\end{table}
+
+%1000	0,004466205	0,003440447	0,00675025
+%10000	0,025333052	0,024690909	0,025999541
+%100000	0,311565404	0,523300591	0,368763666
+%1000000	5,281446206	5,844649515	3,740055547
+%3000000	79,46405615	18,87160167	11,61349688
+
+
+\subsection{Instance type selection}
+
+\subsection{Allocation behavior}
+
+\section{Discussion}
+
+\section{Conclusion}
+
+\begin{thebibliography}{9}
+
+\bibitem{kleinberg2006}{
+ Algorithm design: Chapter 11, \emph{Kleinberg, Jon and Tardos, Éva}, Pearson/Addison Wesley, Boston (Mass.), ISBN: 0-321-37291-3
+ }
+ 
+\bibitem{amazonecu}{
+	Amazon EC2 instance description page:  \url{http://aws.amazon.com/ec2/#instance}
+}
+\end{thebibliography}
+
+\appendix{Time spent}
+
+\newpage
+
+\begin{landscape}
+\appendix
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=770pt]{"System Architecture 2"}
+\caption{System architecture}
+\label{fig_sysarch}
+\end{figure}
+\end{landscape}
+\clearpage
+
+\end{document}

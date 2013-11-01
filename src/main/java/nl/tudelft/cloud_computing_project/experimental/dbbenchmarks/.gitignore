@@ -1,7 +1,3 @@
 /*.sql.gz
-/1000.sql
-/10000.sql
-/100000.sql
-/1000000.sql
-/10000000.sql
-/100000000.sql
+/*.sql
+!/cloudocr_db.sql
