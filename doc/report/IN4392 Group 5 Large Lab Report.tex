@@ -29,71 +29,79 @@ Blah
 
 \section{Introduction}
 
-\subsection{Application selection}
 
-Our use case is a library that has already digitized its paper collection. They find out they also want to OCR the collection so they can better search through it. Cost should be as low as possible, but there are little time constraints. One exception is new books, these should be digitized within a reasonable time. 
+\subsection{Problem}
+WantCloud BV with the providing of facilities to run OCR jobs on Tesseract-OCR\footnote{An OCR Engine that was developed at HP Labs between 1985 and 1995... and now at Google.} have been assuring a great amount of financial income and also a preoccupying increase of this service popularity. Since there is only one machine to execute all the jobs submitted by all the users, WantCloud BV verified that most of the system is no longer capable of guaranteeing the job deadlines for all the users, violating it's own Terms-of-Use. They though that is necessary to improve the limitations of one single machine running Tesseract by using a IaaS platform to run multiple instances of the program.
+
+\subsection{Proposed solution}
+Using Amazon Web Services as the cloud infrastructure provider, we present CloudOCR, a system capable of OCR an entire digitalized library of papers, returning the output in simple plain text. The system have to guarantee scaling during peak usage and load-balance the across the multiple machines, so to effectively do this, CloudOCR monitors the working machines or instances (hereby called workers) to keep track of the system current load and the need to allocating or deallocating a worker. Also, all the jobs are scheduled to the workers in a way that a minimal workload balance can be maintained.
+
+\subsection{Report structure}
+The next section refers to a detailed system design to fully understand the system components, followed by all the experiments and their respective setups. The final two sections of this document will correspond to the results discussion and conclusions.
+
+
+\section{Background on Application}
+CloudOCR is based on a previous working technology called Tesseract-OCR, that provides an OCR engine for images files like ``.jpg'' and ``.png'', turning them into simple text files. Our application takes ``.jpg'' image files as input and output a simple ``.txt'' text file, using EC2 instances and spot instances leased to the Amazon Web Services. Users upload a image file (equivalent to one job) through a simple online front-end which in turn stores the file as a Job in the CloudOCR database. Afterwards, the scheduler will query the database for unassigned jobs and split them among the available workers. At the same time, there is a monitor controlling the system resource usage that provides information to the allocator manager, responsible to allocate and deallocate workers through time, according to the system needs. After a worker finish a job, the output is sent to a user desired storage location.
+To be able to implement the WantedCloud BV's successor to the Tesseract service, there are few requirements that need to be addressed:
+\begin{itemize}
+	\item Automation
+	\item Elasticity
+	\item Performance
+	\item Reliability
+	\item Monitoring
+\end{itemize}
+The next section introduces the system design of CloudOCR and also, explain how did we meet the above requirements.
 
 \section{System Design}
 
 \subsection*{Global overview}
-
-Our system uses a single master server that takes care of managment. Jobs (book pages) are distributed over workers, implemented as VMs. To keep the cost low we use spot instances.
-
-A diagram of our high-level system design can be found in Figure \ref{fig_sysarch}.
-We introduce the components:
+CloudOCR is composed by a master server and working Virtual Machines (hereby VM's only). The master server is the one responsible for all management operations of the system, such as job  scheduling, resource allocation, fault management and so on. The jobs are distributed among the VM's. These are spot instances: impossible to know how long it will take for a new spot instance to be available, but the cost is much lower.
+To show the system design, a high-level diagram can be found in Figure \ref{fig_sysarch}.
+Our system components are:
 
 \begin{LaTeXdescription}
 
-\item[Front-End] The front end interface where jobs can be submitted, and a priority can be assigned. We used a simple Java program to add jobs.
+\item[Front-End]
+The online front-end interface where jobs can be submitted by users, and a priority can be assigned. By using a simple Java program, the new jobs are stored on the system database.
 
-\item[Job queue] The job queue holds jobs that still need to be processed and meta-information like priority and number of faults. It is sorted on priority. We implemented this using a MySQL database.
+\item[Job Queue]
+The job queue holds jobs that still need to be processed and meta-information like priority and number of failures. We implemented it using a MySQL database, querying it to get the updated, sorted by priority, job queue.
 
 \item[Job Scheduler]
-
-The scheduler assigns jobs to workers and contains the logic for \textbf{load balacing}. It uses a \textbf{greedy on-line load-balancing} algorithm \cite{kleinberg2006} to assign jobs to workers until a predefined maximum per worker. The scheduler is run at regular intervals to assign jobs that are under the predefined maximum.
+The scheduler assigns the jobs present on the queue to the available workers and includes the logic for \textbf{load-balancing}. A \textbf{greedy on-line load-balancing} algorithm \cite{kleinberg2006} is used to assign these jobs to those workers, until a predefined maximum amount of jobs per worker is reached and the scheduler is executed at regular predefined intervals.
+These predefined values change according to the system policy applied to the CloudOCR application.
 
 \item[Workers]
-
-A worker executes a job. They are implemented as Amazon EC2 instances running a common AMI having the open source OCR software Tesseract installed.
+A worker exits only to execute its jobs. They are implemented as Amazon EC2 instances running a common AMI that has the open source OCR engine installed, Tesseract-OCR.
 
 \item[System Monitor]
-
-The system monitor \textbf{monitors} characteristics of the workers which other components can use.
+The system monitor keeps track of useful information like job status or resource usage, in order to provide this information to other system components like the fault or allocation manager.
 
 \item[Fault Manager]
-
-The fault manager listens to fault information and handles accordingly. A failed job is resubmitted to the job queue and failing VMs are shutdown (if not already). A job that consistently fails is not resubmitted and logged.
+The fault manager waits for the monitor's fault information and handle it accordingly, which means a failed job is resubmitted to the job queue and failing VM's are shutdown (if not already). A job that consistently fails for a predefined amount of times is logged, instead of resubmitted.
 
 \item[Allocation Manager]
-
-The Allocation Manager receives utilization information. Resources are allocated based on current available jobs. Spot instances are allocated when the price is low enough.
+The allocation manager waits for the monitor's resource usage information and new ones are allocated or old ones removed. New spot instances are allocated based on current submitted jobs and when the price is low enough.
 
 \end{LaTeXdescription}
 
-\subsection*{Resource managment}
+\subsection*{Resource management}
 
 \begin{LaTeXdescription}
 \item[Automation]
-
-Most of the system is automated, only job submitting and inspecting faulty jobs is a manual task.
+Almost all of the implemented system is automated, except when submitting new jobs and when dealing with faulty ones, where the job is deleted from the queue.
 
 \item[Elasticity]
-
-The \textbf{Allocation Manager} handles the allocation of resources and should be able to scale well. The master itself is not scaled.
+The \textbf{Allocation Manager} handle all the new resources (instances) allocation an deallocation, providing an automatic scaling to the system. The master itself is never scaled.
 
 \item[Performance]
-
-The \textbf{Job Scheduler} takes care of load balancing.
+The \textbf{Job Scheduler} is responsible for guaranteeing the system load balance.
 
 \item[Reliability]
-
-The system uses a master-slave architecture. The master contains all of the managment codes, while the slaves (workers) process the jobs. Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handles failures in VMs and jobs.
-
-Reliability for the master is not provided.
+The system uses a master-slave architecture where the master contains all of the management operations, while the slaves (workers) process jobs. Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handle all the failures in VM's and its jobs. For the master, there is no reliability provided
 
 \item[Monitoring]
-
-A dedicated monitoring subsystem monitors the workers and aggregates information, which can be logged if necessary.
+A dedicated monitoring subsystem keep track of the workers and aggregates information for other components to use and can also be logged if necessary.
 
 \end{LaTeXdescription}
 
@@ -102,26 +110,19 @@ A dedicated monitoring subsystem monitors the workers and aggregates information
 \begin{LaTeXdescription}
 
 \item[Job Allocation]
-
-Jobs can be give a priority by the user. Jobs will only be chosen by the scheduler when no higher-priority jobs are available. Jobs with the same priority are chosen in the order the were submitted to prevent starvation.
+Users can specify a priority to a job, which means that jobs will only be chosen by the scheduler when no higher-priority jobs are available. In order to prevent starvation, jobs with the same priority are scheduled according to time they were submitted, which means first in, first out.
 
 \item[Resource Allocation]
-
-A configurable minimum throughput is maintained. There is no upper limit on allocated resources, if enough jobs are available and the price of spot instances is low enough.
+A configurable minimum throughput is maintained and there is no upper limit on allocated resources. If there are enough jobs available and the price of spot instances is low enough, a new instance is allocated.
 
 \end{LaTeXdescription}
 
 \subsection*{Additional System Features}
 
 \begin{LaTeXdescription}
-
 \item[Scheduling]
-
-The solution focuses on efficient scheduling to minimize the total cost. This is done by the Allocation Manager which utilizes spot instances to keep the price as low as possible, while maintaining a minimal throughput. The user can configure this price/performance trade-off.
-
-\item[Durability]
-
-\emph{note: if time allows}. The systems saves the OCR'ed images compressed for collecting by the users. After a certain time results are relocated to long-term low-cast storage.
+Our solution focus on efficient scheduling to minimize the total cost. This is done by the Allocation Manager, using spot instances to keep the price as low as possible, while maintaining a configurable minimal throughput.
+The user can also configure this price/performance trade-off.
 
 \end{LaTeXdescription}
 
@@ -129,7 +130,11 @@ The solution focuses on efficient scheduling to minimize the total cost. This is
 
 \subsection{Experimental Setup}
 
-We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive.
+We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. All instances were running Ubuntu 13.10 (Linux kernel 3.8.0).
+
+The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive. The OS and RDMS were both controlled by Amazon, we know only that a 64-bit Linux was used by checking the mysql status information. We configured RDS to use MySQL 5.6.13.
+
+To keep tests as comparable as possible we used only one job: a 450 KB JPEG file with a 2064x1096 resolution containing 3 scanned book pages (Figure \ref{fig_standardjob}).
 
 \begin{savenotes}
 \begin{table}
@@ -170,7 +175,7 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 
 \begin{tabular}{| l | l | l | l |}
 \hline
-Job \# & Micro & Small & Medium \\ \hline
+\# Jobs & Micro & Small & Medium \\ \hline
 1000 & 0,004s &	0,003s & 0,007s \\ \hline
 10000 & 0,025s & 0,025s & 0,026s \\ \hline
 100000 & 0,31s & 0,52s & 0,37s \\ \hline
@@ -182,14 +187,41 @@ Job \# & Micro & Small & Medium \\ \hline
 \label{dbperfresults}
 \end{table}
 
-%1000	0,004466205	0,003440447	0,00675025
-%10000	0,025333052	0,024690909	0,025999541
-%100000	0,311565404	0,523300591	0,368763666
-%1000000	5,281446206	5,844649515	3,740055547
-%3000000	79,46405615	18,87160167	11,61349688
-
-
 \subsection{Instance type selection}
+
+To check which instance type would be the best to use with our application we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
+
+Our main findings are that the chosen instance type does not greatly influence the price per job if spot instances are used. For production uses we would have chosen the medium instance (and tested other instances to see if they were even cheaper). However to reap the benefits of the free resources provided by Amazon\footnote{Amazon AWS has a "free usage tier" which among other consists of 750 free EC2 micro instance hours and 750 free micro RDS instance hours} we chose to use micro instances in all our development and experiments.
+
+Based on these results we also do a rough estimate on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
+$$
+750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.0016\$ \cdot \text{\#jobs}
+$$
+
+Which puts the equivalence point at about 600,000 - 650,000 jobs, which would make the desktop run for over 200 days. So even excluding important cost factors like maintenance and network and storage infrastructure the cloud-based solution looks like and interesting solution 
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{"results-tessaract"}
+\caption{Average job processing time}
+\label{fig_tesperfresults}
+\end{figure}
+
+\begin{table}
+\centering
+
+\begin{tabular}{| l | l | l |}
+\hline
+Instance & Processing time & Cost / job (normal/spot) \\ \hline
+Micro & 326s & 0,00054 / 0,0018 \$ \\ \hline
+Small & 93s & 0,00041 / 0,0017 \$ \\ \hline
+Medium & 45s & 0,00037 / 0,0016 \$ \\ \hline
+Laptop & 30s & n.a. \\ \hline
+\end{tabular}
+
+\caption{Average Tessaract job processing time}
+\label{tesperfresults}
+\end{table}
 
 \subsection{Allocation behavior}
 
@@ -217,9 +249,21 @@ Job \# & Micro & Small & Medium \\ \hline
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=770pt]{"System Architecture 2"}
+\includegraphics[width=700pt]{"System Architecture 2"}
 \caption{System architecture}
 \label{fig_sysarch}
+\end{figure}
+\end{landscape}
+\clearpage
+
+\begin{landscape}
+\appendix
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=700pt]{standardfile}
+\caption{Standard Job image file}
+\label{fig_standardjob}
 \end{figure}
 \end{landscape}
 \clearpage
