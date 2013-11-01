@@ -129,7 +129,11 @@ The solution focuses on efficient scheduling to minimize the total cost. This is
 
 \subsection{Experimental Setup}
 
-We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive.
+We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in table \ref{amazoninstancespec}. All instances were running Ubuntu 13.10 (Linux kernel 3.8.0).
+
+The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive. The OS and RDMS were both controlled by Amazon, we know only that a 64-bit Linux was used by checking the mysql status information. We configured RDS to use MySQL 5.6.13.
+
+To keep tests as comparable as possible we used only one job: a 450 KB JPEG file with a 2064x1096 resolution containing 3 scanned book pages (Figure \ref{fig_standardjob}).
 
 \begin{savenotes}
 \begin{table}
@@ -170,7 +174,7 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 
 \begin{tabular}{| l | l | l | l |}
 \hline
-Job \# & Micro & Small & Medium \\ \hline
+\# Jobs & Micro & Small & Medium \\ \hline
 1000 & 0,004s &	0,003s & 0,007s \\ \hline
 10000 & 0,025s & 0,025s & 0,026s \\ \hline
 100000 & 0,31s & 0,52s & 0,37s \\ \hline
@@ -182,14 +186,41 @@ Job \# & Micro & Small & Medium \\ \hline
 \label{dbperfresults}
 \end{table}
 
-%1000	0,004466205	0,003440447	0,00675025
-%10000	0,025333052	0,024690909	0,025999541
-%100000	0,311565404	0,523300591	0,368763666
-%1000000	5,281446206	5,844649515	3,740055547
-%3000000	79,46405615	18,87160167	11,61349688
-
-
 \subsection{Instance type selection}
+
+To check which instance type would be the best to use with our application we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
+
+Our main findings are that the chosen instance type does not greatly influence the price per job if spot instances are used. For production uses we would have chosen the medium instance (and tested other instances to see if they were even cheaper). However to reap the benefits of the free resources provided by Amazon\footnote{Amazon AWS has a "free usage tier" which among other consists of 750 free EC2 micro instance hours and 750 free micro RDS instance hours} we chose to use micro instances in all our development and experiments.
+
+Based on these results we also do a rough estimate on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
+$$
+750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.0016\$ \cdot \text{\#jobs}
+$$
+
+Which puts the equivalence point at about 600,000 - 650,000 jobs, which would make the desktop run for over 200 days. So even excluding important cost factors like maintenance and network and storage infrastructure the cloud-based solution looks like and interesting solution 
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{"results-tessaract"}
+\caption{Average job processing time}
+\label{fig_tesperfresults}
+\end{figure}
+
+\begin{table}
+\centering
+
+\begin{tabular}{| l | l | l |}
+\hline
+Instance & Processing time & Cost / job (normal/spot) \\ \hline
+Micro & 326s & 0,00054 / 0,0018 \$ \\ \hline
+Small & 93s & 0,00041 / 0,0017 \$ \\ \hline
+Medium & 45s & 0,00037 / 0,0016 \$ \\ \hline
+Laptop & 30s & n.a. \\ \hline
+\end{tabular}
+
+\caption{Average Tessaract job processing time}
+\label{tesperfresults}
+\end{table}
 
 \subsection{Allocation behavior}
 
@@ -217,9 +248,21 @@ Job \# & Micro & Small & Medium \\ \hline
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=770pt]{"System Architecture 2"}
+\includegraphics[width=700pt]{"System Architecture 2"}
 \caption{System architecture}
 \label{fig_sysarch}
+\end{figure}
+\end{landscape}
+\clearpage
+
+\begin{landscape}
+\appendix
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=700pt]{standardfile}
+\caption{Standard Job image file}
+\label{fig_standardjob}
 \end{figure}
 \end{landscape}
 \clearpage
