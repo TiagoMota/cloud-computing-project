@@ -14,8 +14,19 @@
 \graphicspath{ {images/} }
 
 \title{CloudOCR: Cloud Computing Large Lab Assignment}
-\author{Tiago Mota, Eddy Bertoluzzo, David Hoepelman}
-
+\author{
+	\IEEEauthorblockN{Tiago Mota \\}
+	\IEEEauthorblockA{Email: neozflux@gmail.com \\}
+	\and
+	\IEEEauthorblockN{Eddy Bertoluzzo \\}
+	\IEEEauthorblockA{Email: eddy.bertoluzzo@gmail.com \\}
+	\and
+	\IEEEauthorblockN{David Hoepelman\\}
+	\IEEEauthorblockA{Email: dhoepelman@gmail.com\\}
+	\and
+	\IEEEauthorblockN{Course instructor: Alexandru Iosup\\}
+	\IEEEauthorblockA{Email: A.Iosup@tudelft.nl \\}
+}
 \makesavenoteenv{tabular} 
 
 \begin{document}
@@ -31,7 +42,7 @@ Blah
 
 
 \subsection{Problem}
-WantCloud BV with the providing of facilities to run OCR jobs on Tesseract-OCR\footnote{An OCR Engine that was developed at HP Labs between 1985 and 1995... and now at Google.} have been assuring a great amount of financial income and also a preoccupying increase of this service popularity. Since there is only one machine to execute all the jobs submitted by all the users, WantCloud BV verified that most of the system is no longer capable of guaranteeing the job deadlines for all the users, violating it's own Terms-of-Use. They though that is necessary to improve the limitations of one single machine running Tesseract by using a IaaS platform to run multiple instances of the program.
+WantCloud BV want a system based on a Infrastructure-as-a-Service (IaaS), to OCR digitalized collections of papers, from a Library. The cost to process these papers should be as low as possible and in case of new books, these should be digitalized within a reasonable time.
 
 \subsection{Proposed solution}
 Using Amazon Web Services as the cloud infrastructure provider, we present CloudOCR, a system capable of OCR an entire digitalized library of papers, returning the output in simple plain text. The system have to guarantee scaling during peak usage and load-balance the across the multiple machines, so to effectively do this, CloudOCR monitors the working machines or instances (hereby called workers) to keep track of the system current load and the need to allocating or deallocating a worker. Also, all the jobs are scheduled to the workers in a way that a minimal workload balance can be maintained.
@@ -135,6 +146,8 @@ We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. 
 The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive. The OS and RDMS were both controlled by Amazon, we know only that a 64-bit Linux was used by checking the mysql status information. We configured RDS to use MySQL 5.6.13.
 
 To keep tests as comparable as possible we used only one job: a 450 KB JPEG file with a 2064x1096 resolution containing 3 scanned book pages (Figure \ref{fig_standardjob}).
+
+We implemented the system as a Java program with seperate entry points for the worker and master. We used sql2o \cite{sql2ocite} to access the database from Java and used SLF4J for loggin \cite{slf4jcite}.
 
 \begin{savenotes}
 \begin{table}
