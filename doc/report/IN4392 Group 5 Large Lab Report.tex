@@ -216,8 +216,8 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 3000000	& 79,46s & 18,87s & 11,61s \\ \hline
 \end{tabular}
 \end{table}
-\ \\
-\subsubsection{Instance type selection}
+
+\subsection{Instance type selection}
 
 To check which instance type would be the best to use for our workers we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
 
@@ -240,12 +240,11 @@ Instance & Processing time & Cost / job (normal/spot) \\ \hline
 Micro & 326s & 0,0018 / 0,00054 \$ \\ \hline
 Small & 93s & 0,0017 / 0,00041 \$ \\ \hline
 Medium & 45s & 0,0016 / 0,00037 \$ \\ \hline
-Desktop & 30s & n.a. \\ \hline
+Laptop & 30s & n.a. \\ \hline
 \end{tabular}
 \end{table}
 
-\ \\
-\subsubsection{Allocation behavior}
+\subsection{Allocation behavior}
 
 We tested whether CloudOCR had the desired allocation behaviour by simulating a workload. We configured CloudOCR to only use spot instances. We configured the ideal number of workers to be 10\% the number of assigned jobs, which corresponds to completing all jobs in about an hour (see Table \ref{tesperfresults}). We then started the system with 100 jobs available and added 100 jobs more at the 15 minute mark.
 
@@ -263,35 +262,35 @@ As can be seen clearly from the results (Figure \ref{fig_allperfresults}) our ap
 
 \section{Discussion}
 
-
-\subsubsection*{Database or in-memory}
-
-One of our first design decisions was how to store data, in memory or use another method like files or a database. The decision boiled down to deciding whether to store everything in memory or use a RDMS. Memory had the advantages of being faster and having less overhead. A major disadvantage was that persistence was not provided, so we would have to write our own persistence system. An advantage of using databases was that we could also use it for limited communication instead of having to involve systems like RMI or SSH. We later reverted this decision somewhat and decided to keep the information about the workers solely in memory.
-
-\subsubsection*{Improvement: load prediction}
-
-As we can see from Figure \ref{fig_allperfresults} fulfilling requests for VMs takes Amazon a few minutes, also because the VM needs to boot up. This can decrease performance, especially if load is variable. An improvement for our system would be to incorporate load prediction to anticipate the load. Our use-case was too limited to explore this properly so we leave this as future work.
-
-\subsubsection*{Improvement: better load characteristics}
-
-A major limitation we encountered was that we could not predict the performance of Tesseract on files well based on simple file characteristics. File-size seems of some but little influence and so did resolution. We were forced to load-balance based on file-size of jobs and to provision based on the number of jobs. Understanding the performance characteristics of loads better (by studying Tesseract performance on different files) could greatly improve our load-balancing and provisioning.
-
-\subsubsection*{Speed/cost trade-off}
-
-Our main speed/cost trade-off is in determining how much on-demand instances the system will maximally use. Higher number greatly increase cost (when compared to spot instances), but also greatly increase guaranteed throughput. It also decreases the number of failures due to killed VMs because on-demand instances are normally not killed by Amazon.
-
-\subsubsection*{Is a cloud-based solution preferable?}
-
-Based on our cost per job results (see Table \ref{tesperfresults}) we also do a rough estimate on the choice for cloud or non-cloud system. The current cost for the desktop system are about \$750 and a typical desktop system uses about 200W of power. We used \$0.25/Kwh as energy price. This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
+Based on these results we also do \emph{a rough estimate} on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
 $$
 750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.00037\$ \cdot \text{\#jobs}
 $$
 
-Which puts the equivalence well over a million jobs, which would make the desktop run for well over a year. This even excludes other costs like maintenance and network infrastructure. All in all this means that a cloud solution is very attractive compared to getting your own machines.
+Which puts the equivalence well over a million jobs, which would make the desktop run for well over a year. This even excludes other costs like maintance and network infrastructure. All in all this means that a cloud solution is very attractive compared to getting your own machines.
+
+	\begin{table}
+	\caption{Extrapolation of charged-costs}
+	\label{extpcosts}
+	\centering
+	\begin{tabular}{| l | l | l | l |}
+	\hline
+	Jobs & Micro (normal/spot) & Small (n/s) & Medium (n/s)\\ \hline
+	100.000 &  180 / 54 \$ & 170 / 41 \$ &  160 / 41 \$ \\ \hline
+	1.000.000 &  1.800 / 540 \$ & 1.700 / 410 \$ &  1.600 / 370 \$ \\ \hline
+	10.000.000 &  18.000 / 5.400\$ & 17.000 / 4.100 \$ & 16.000 / 3.700 \$ \\ \hline
+	\end{tabular}
+	\end{table}	
 	
+	As future work, CloudOCR could be improved by doin the following:
+	\begin{LaTeXdescription}
+		\item Carrying out benchmark test on larger instances types
+		\item Compilation of information of the monitor, to create statistics
+		\item 
+	\end{LaTeXdescription}
 \section{Conclusion}
-In this report, we designed a system based on a IaaS cloud platform for OCR-conversion of JPEG image files, and evaluated its performance on Amazon Web Services.
-Our results show that using a database do not cause a significant slowdown, 
+In this report, we designed a system based on a IaaS cloud platform for OCR-conversion of ``JPEG'' image files, and evaluated its performance on Amazon Web Services.
+Benchmark tests show that
 
 \begin{thebibliography}{9}
 
