@@ -27,10 +27,10 @@ import com.amazonaws.services.ec2.model.Tag;
 
 public class Monitor{
 
-	private static Monitor instance;
-	private static Logger LOG = LoggerFactory.getLogger(Monitor.class);
-	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
-	private FaultManager faultManager;
+	private static Monitor 	instance;
+	private static Logger 	LOG = LoggerFactory.getLogger(Monitor.class);
+	private AmazonEC2 		ec2 = AmazonEC2Initializer.getInstance();
+	private FaultManager 	faultManager;
 
 
 	private Monitor(){

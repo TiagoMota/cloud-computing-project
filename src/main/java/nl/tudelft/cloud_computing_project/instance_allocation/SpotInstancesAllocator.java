@@ -166,7 +166,7 @@ public class SpotInstancesAllocator {
 		}
 	}
 	
-	public void cancelSpotInstancesRequests(int n) {
+	public void cancelSpotInstancesRequests(int requestsToBeDeleted) {
 		try {
 			
 			if(spotInstanceRequestIds.isEmpty())
@@ -178,9 +178,11 @@ public class SpotInstancesAllocator {
 			
 			ArrayList<String> deleteSpotInstanceRequestIds = new ArrayList<String>();
 			int openedSpotInstanceRequestsNumber = 0;
-
-			for (int i = 0; i < n; i++) {
+			
+			int i = 0;
+			while (i < requestsToBeDeleted) {
 				if(requestList.get(i).getState().equals("open")) {
+					i++;
 					openedSpotInstanceRequestsNumber++;
 					String idToBeRemoved = requestList.get(i).getSpotInstanceRequestId();
 					removeFromSpotInstanceRequestIds(idToBeRemoved);
