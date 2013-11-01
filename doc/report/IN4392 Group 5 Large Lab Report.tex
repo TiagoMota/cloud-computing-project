@@ -4,7 +4,7 @@
 %\usepackage{amsfonts}
 %\usepackage{algorithm}% http://ctan.org/pkg/algorithms
 %\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
-\usepackage{hyperref}
+\usepackage[]{hyperref}
 %\usepackage{verbatim}
 %\usepackage{textcomp}
 \usepackage{pdflscape}
@@ -121,16 +121,16 @@ The allocation manager allocates workers according to the number of unprocessed 
 
 \begin{LaTeXdescription}
 \item[Automation]
-Almost all of the implemented system is automated, except when submitting new jobs and when dealing with faulty ones, where the job is deleted from the queue.
+Almost all of the implemented system is automated, except submitting new jobs and inspecting faulty jobs (they are removed from the queue).
 
 \item[Elasticity]
-The \textbf{Allocation Manager} handle all the new resources (instances) allocation an deallocation, providing an automatic scaling to the system. The master itself is never scaled.
+The \textbf{Allocation Manager} handle all the worker allocation an deallocation, providing an automatic scaling to the system. The master or database are not scaled.
 
 \item[Performance]
 The \textbf{Job Scheduler} is responsible for guaranteeing the system load balance.
 
 \item[Reliability]
-The system uses a master-slave architecture where the master contains all of the management operations, while the slaves (workers) process jobs. Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handle all the failures in VM's and its jobs. For the master, there is no reliability provided
+Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handle all the failures in workers and its jobs. For the master, there is no reliability provided.
 
 \item[Monitoring]
 A dedicated monitoring subsystem keep track of the workers and aggregates information for other components to use and can also be logged if necessary.
@@ -163,13 +163,13 @@ The user can also configure this price/performance trade-off.
 
 \subsection{Experimental Setup}
 
-We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in Table \ref{amazoninstancespec}. All instances were running Ubuntu 13.10 (Linux kernel 3.8.0).
+We used Amazon EC2 m1.micro, m1.small and m1.medium instances in all our tests. Specifications can be found in Table \ref{amazoninstancespec}. All instances were running Ubuntu 13.04 (Linux kernel 3.8.0).
 
 The database was provided by Amazon RDS, which uses the same instance specifications but is slightly more expensive. The OS and RDMS were both controlled by Amazon, we know only that a 64-bit Linux was used by checking the mysql status information. We configured RDS to use MySQL 5.6.13.
 
 To keep tests as comparable as possible we used only one job: a 450 KB JPEG file with a 2064x1096 resolution containing 3 scanned book pages (Figure \ref{fig_standardjob}).
 
-We implemented the system as a Java program with seperate entry points for the worker and master. We used sql2o \cite{sql2ocite} to access the database from Java and used SLF4J for loggin \cite{slf4jcite}.
+We implemented the system as a Java program with seperate entry points for the worker and master. We used sql2o \cite{sql2o} (a thin JDBC wrapper) to access the database from Java and used SLF4J for logging \cite{SLF4J}.
 
 \begin{savenotes}
 \begin{table}
@@ -190,9 +190,9 @@ Medium & 2 ECU & 3.75 GB & Moderate & 0.13/0.032 \$/hr \\ \hline
 
 \subsubsection{Database performance}
 
-We use a relation database (MySQL) to store our jobs and assignments. As such the database becomes our most probable bottleneck for scaling. We tested the Amazon RDS database performance with databases containing a different number of jobs and executed the query that is needed to retrieve the jobs for scheduling. To accurately test the bottleneck we retrieved all jobs instead of a number dependent on the number of workers (as the scheduler would do).
+We use a relation database (MySQL) to store our jobs and assignments. As such the database becomes our most probable bottleneck for scaling. We tested different Amazon RDS instances with databases containing varying numbers of jobs . We executed the query that is needed to retrieve the jobs for scheduling. To accurately test the bottleneck we retrieved all jobs instead of a number dependent on the number of workers (as the scheduler would normally do).
 
-We ran the test concurrently from the same VM to the different instance types to make sure environmental factors were minimized. Our own test had previously shown that running the tests concurrently does not have a significant influence on the results. We ran each test 50 times and report the average.
+We ran the test concurrently from the same VM to the different instance types to make sure environmental differences were minimized. Our own test had previously shown that running the tests concurrently does not have a significant influence on the results. We ran each test 50 times and report the average.
 
 As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig_dbperfresults} database overhead only becomes noticeable around 100,000 jobs and only becomes significant starting at a million jobs. As we configured the scheduler to retrieve 10 jobs per active worker this would mean 100,000 workers. We thus conclude that database overhead is not a bottleneck for the scaling of our application.
 
@@ -220,16 +220,16 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 
 \subsection{Instance type selection}
 
-To check which instance type would be the best to use with our application we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
+To check which instance type would be the best to use for our workers we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
 
 Our main findings are that the chosen instance type does not greatly influence the price per job if spot instances are used. For production uses we would have chosen the medium instance (and tested other instances to see if they were even cheaper). However to reap the benefits of the free resources provided by Amazon\footnote{Amazon AWS has a "free usage tier" which among other consists of 750 free EC2 micro instance hours and 750 free micro RDS instance hours} we chose to use micro instances in all our development and experiments.
 
-Based on these results we also do a rough estimate on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
+Based on these results we also do \emph{a rough estimate} on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
 $$
 750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.0016\$ \cdot \text{\#jobs}
 $$
 
-Which puts the equivalence point at about 600,000 - 650,000 jobs, which would make the desktop run for over 200 days. So even excluding important cost factors like maintenance and network and storage infrastructure the cloud-based solution looks like and interesting solution 
+Which puts the equivalence point at about 600,000 - 650,000 jobs, which would make the desktop run for over 200 days. So even excluding important cost factors like maintenance and network and storage infrastructure the cloud-based solution looks like an interesting solution.
 
 \begin{figure}
 \centering
@@ -270,6 +270,14 @@ Laptop & 30s & n.a. \\ \hline
 
 \bibitem{tesseractocr} {
 	Tesseract OCR: \url{https://code.google.com/p/tesseract-ocr/}
+}
+
+\bibitem{sql2o} {
+	Sql2o: \url{http://www.sql2o.org/}
+}
+
+\bibitem{SLF4J} {
+	The Simple Logging Facade for Java (SLF4J) : \url{http://www.slf4j.org/}
 }
 
 \end{thebibliography}
