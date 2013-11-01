@@ -59,22 +59,27 @@ The system will be able to scale according to the number of available jobs and l
 The system will be fully automatic, aside from the addition of jobs and the resolving faulty jobs.
 
 \subsection{Report structure}
-The next section refers to a detailed system design to fully understand the system components, followed by all the experiments and their respective setups. The final two sections of this document will correspond to the results discussion and conclusions.
-
+In section \ref{sec:backgroundonapplication} we will first detail the application and its requirements. In section \ref{sec:systemdesign} we will show the design of the solution. In section \ref{sec:experimentalresults} we will show the experiments we used to evaluate the system.
+In the final two sections of this report we will draw conclusions from the evaluations.
 
 \section{Background on Application}
-CloudOCR is based on a previous working technology called Tesseract-OCR, that provides an OCR engine for images files like ``.jpg'' and ``.png'', turning them into simple text files. Our application takes ``.jpg'' image files as input and output a simple ``.txt'' text file, using EC2 instances and spot instances leased to the Amazon Web Services. Users upload a image file (equivalent to one job) through a simple online front-end which in turn stores the file as a Job in the CloudOCR database. Afterwards, the scheduler will query the database for unassigned jobs and split them among the available workers. At the same time, there is a monitor controlling the system resource usage that provides information to the allocator manager, responsible to allocate and deallocate workers through time, according to the system needs. After a worker finish a job, the output is sent to a user desired storage location.
-To be able to implement the WantedCloud BV's successor to the Tesseract service, there are few requirements that need to be addressed:
-\begin{itemize}
-	\item Automation
-	\item Elasticity
-	\item Performance
-	\item Reliability
-	\item Monitoring
-\end{itemize}
-The next section introduces the system design of CloudOCR and also, explain how did we meet the above requirements.
+\label{sec:backgroundonapplication}
+CloudOCR is based on a existing technology called Tesseract-OCR that provides OCR services for bitmap images files like ``JPEG'' and ``PNG'' files and extracts their text into plain text files. For simplification our application takes only JPEG image files as input and output a simple text file.
+
+We use the Amazon AWS cloud, specifically the EC2 (virtual machine), S3 (storage) and RDS (relational database) services.
+
+To be able to implement the WantedCloud BV's wishes, we have the following requirements
+\begin{LaTeXdescription}
+	\item[Automation] WantCloud does not have the resources to constantly manage the application. As such the application should perform normally without user intervention.
+	\item[Elasticity] WantCloud has a large library to OCR, and as such the application should be able to scale to large numbers of jobs.
+	\item[Performance] WantCloud has little time constraints, but the costs must be as low as possible.
+	\item[Reliability] Failures or corrupted jobs should be handled gracefully and should not halt the system.
+	\item[Monitoring] Worker numbers and job throughput should be monitored.
+	\item[Scheduling] The system should make use of Amazon's spot instance system (wherein one bids for system capacity) to keep costs as low as possible.
+\end{LaTeXdescription}
 
 \section{System Design}
+\label{sec:systemdesign}
 
 \subsection*{Global overview}
 CloudOCR is composed by a master server and working Virtual Machines (hereby VM's only). The master server is the one responsible for all management operations of the system, such as job  scheduling, resource allocation, fault management and so on. The jobs are distributed among the VM's. These are spot instances: impossible to know how long it will take for a new spot instance to be available, but the cost is much lower.
@@ -148,7 +153,8 @@ The user can also configure this price/performance trade-off.
 
 \end{LaTeXdescription}
 
-\section{Experimantal results}
+\section{Experimental results}
+\label{sec:experimentalresults}
 
 \subsection{Experimental Setup}
 
