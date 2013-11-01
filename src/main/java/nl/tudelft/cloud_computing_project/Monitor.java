@@ -42,26 +42,26 @@ public class Monitor{
 		return instance;
 	}
 
-	public int getNumRunningInstances() {
+	public int getNumRunningOrPendingInstances() {
 
-		return getRunningInstancesId().size();
+		return getRunningOrPendingInstancesId().size();
 
 	}
 
-	public int getNumRunningNormalInstances() {
+	public int getNumRunningOrPendingNormalInstances() {
 
-		Set<String> runningInstancesId = getRunningInstancesId();
+		Set<String> runningOrPendingInstancesId = getRunningOrPendingInstancesId();
 
 		try {
 
-			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(runningInstancesId));
+			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(runningOrPendingInstancesId));
             List<Reservation> reservations = describeInstancesRequest.getReservations();
             
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
 					for (Tag tag : instance.getTags()){
-						if(tag.getKey().equals("cloudocr") && tag.getValue().equals("worker")){
-							runningInstancesId.remove(instance.getInstanceId());
+						if(tag.getKey().equals("cloudocr") && !tag.getValue().equals("worker")){
+							runningOrPendingInstancesId.remove(instance.getInstanceId());
 							break;
 						}	
 					}
@@ -76,12 +76,12 @@ public class Monitor{
 			LOG.error("Request ID: " + ase.getRequestId());
 		}
 
-		return runningInstancesId.size();
+		return runningOrPendingInstancesId.size();
 
 	}
 	
-	public Set<String> getRunningInstancesId() {
-		Set<String> runningInstancesId = new TreeSet<String>();
+	public Set<String> getRunningOrPendingInstancesId() {
+		Set<String> runningOrPendingInstancesId = new TreeSet<String>();
 
 		try {
 			//Retrieve instances status
@@ -92,19 +92,19 @@ public class Monitor{
 				//Retrieve machine state (running, stopped, booting)
 				String machineState = instanceStatusInfo.getInstanceState().getName();
 
-				if(machineState.equalsIgnoreCase("running")) {
-					runningInstancesId.add(instanceStatusInfo.getInstanceId());
+				if(machineState.equalsIgnoreCase("running") || machineState.equalsIgnoreCase("pending")) {
+					runningOrPendingInstancesId.add(instanceStatusInfo.getInstanceId());
 				}
 			}
 			
-			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(runningInstancesId));
+			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances(new DescribeInstancesRequest().withInstanceIds(runningOrPendingInstancesId));
             List<Reservation> reservations = describeInstancesRequest.getReservations();
 			
             for (Reservation reservation : reservations) {
 				for (Instance instance : reservation.getInstances()) {
 					for (Tag tag : instance.getTags()){
 						if(!tag.getKey().equals("cloudocr") || (tag.getKey().equals("cloudocr") && !(tag.getValue().equals("worker") || tag.getValue().equals("spotinstance")))) {
-							runningInstancesId.remove(instance.getInstanceId());
+							runningOrPendingInstancesId.remove(instance.getInstanceId());
 							break;
 						}
 					}
@@ -119,7 +119,7 @@ public class Monitor{
 			LOG.error("Request ID: " + ase.getRequestId());
 		}
 
-		return runningInstancesId;
+		return runningOrPendingInstancesId;
 
 	}
 

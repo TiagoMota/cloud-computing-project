@@ -1,6 +1,7 @@
 package nl.tudelft.cloud_computing_project.instance_allocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import nl.tudelft.cloud_computing_project.AmazonEC2Initializer;
@@ -32,7 +33,6 @@ public class SpotInstancesAllocator {
 	private static Logger LOG = LoggerFactory.getLogger(SpotInstancesAllocator.class);
 	private static SpotInstancesAllocator instance;
 	private AmazonEC2 ec2 = AmazonEC2Initializer.getInstance();
-	private ArrayList<String> instanceIds;
 	private ArrayList<String> spotInstanceRequestIds;
 
 	private SpotInstancesAllocator(){}
@@ -41,7 +41,8 @@ public class SpotInstancesAllocator {
 		if(instance == null) instance = new SpotInstancesAllocator();
 		return instance;
 	}
-
+	
+	// TODO finish monitoring in a thread
 	public void requestSpotInstances (int instancesToAllocate) {
 		
 		if(instancesToAllocate == 0) return;
@@ -64,10 +65,9 @@ public class SpotInstancesAllocator {
 		List<SpotInstanceRequest> requestResponses = requestResult.getSpotInstanceRequests();
 
 		spotInstanceRequestIds = new ArrayList<String>();
-		instanceIds = new ArrayList<String>();
 
 		for (SpotInstanceRequest requestResponse : requestResponses) {
-			System.out.println("Created Spot Request: "+requestResponse.getSpotInstanceRequestId());
+			LOG.info("Created Spot Request: "+requestResponse.getSpotInstanceRequestId());
 			spotInstanceRequestIds.add(requestResponse.getSpotInstanceRequestId());
 		}
 
@@ -77,64 +77,53 @@ public class SpotInstancesAllocator {
 
 	private void monitorSpotInstancesRequests() {
 
-		boolean anyRequestOpen;
+		// Retrieve all of the requests we want to monitor.
+		DescribeSpotInstanceRequestsRequest describeRequest = new DescribeSpotInstanceRequestsRequest();
+		DescribeSpotInstanceRequestsResult describeResult = ec2.describeSpotInstanceRequests(describeRequest);
+		List<SpotInstanceRequest> describeResponses = describeResult.getSpotInstanceRequests();
+		
+		//Exit if there are no active requests
+		if(describeResponses == null) 
+			return;
+		
+		while (!describeResponses.isEmpty()) {
 
-		do {
+			Collection<SpotInstanceRequest> fulfilledRequests = new ArrayList<SpotInstanceRequest>();
 
-			anyRequestOpen = false;
-
-			DescribeSpotInstanceRequestsRequest describeRequest = new DescribeSpotInstanceRequestsRequest();
-
-			try {
-				// Retrieve all of the requests we want to monitor.
-				DescribeSpotInstanceRequestsResult describeResult = ec2.describeSpotInstanceRequests(describeRequest);
-				List<SpotInstanceRequest> describeResponses = describeResult.getSpotInstanceRequests();
-
-				//Exit if there are no active requests
-				if(describeResponses == null) 
-					return;
-
-				// Look through each request and determine if they are all in the active state.
-				for (SpotInstanceRequest describeResponse : describeResponses) {
-					if (describeResponse.getState().equals("open")) {
-						anyRequestOpen = true;
-						break;
-					}
-
-					instanceIds.add(describeResponse.getInstanceId());
-					AllocationManager.getInstance().setProtectedInstance(describeResponse.getInstanceId());
-					tagInstances();
+			// Look through each request and determine if they are all in the active state.
+			for (SpotInstanceRequest describeResponse : describeResponses) {
+				if(describeResponse.getState().equals("active")) {
+					fulfilledRequests.add(describeResponse);
+					String instanceId = describeResponse.getInstanceId();
+					AllocationManager.getInstance().setProtectedInstance(instanceId);
+					tagInstance(instanceId);
+					LOG.info("Spot Request fulfilled: 1 spot instance created");
 				}
-			} catch (AmazonServiceException e) {
-				// If we have an exception, ensure we don't break out
-				// of the loop. This prevents the scenario where there
-				// was blip on the wire.
-				anyRequestOpen = true;
 			}
 
+			for(SpotInstanceRequest request : fulfilledRequests) 
+				describeResponses.remove(request);
+			
 			try {
-				// Sleep for 60 seconds.
-				Thread.sleep(60*1000);
+				// Sleep for 5 seconds.
+				Thread.sleep(5*1000);
 			} catch (Exception e) {
 				// Do nothing because it woke up early.
 			}
 
-		} while (anyRequestOpen);
+		} 
 
 	}
 
-	private void tagInstances() {
+	private void tagInstance(String instanceId) {
 		// Tag the created instances
-		Tag tag = new Tag("cloudocr", "worker");
-		
-		for (String instanceId : instanceIds) {
-			
-			CreateTagsRequest createTagsRequest = new CreateTagsRequest();
-			createTagsRequest.withResources(instanceId).withTags(tag);
-			
-			ec2.createTags(createTagsRequest);
+		Tag tag = new Tag().withKey("cloudocr").withValue("spotinstance");
 
-		}
+		CreateTagsRequest createTagsRequest = new CreateTagsRequest();
+		createTagsRequest.withResources(instanceId).withTags(tag);
+
+		ec2.createTags(createTagsRequest);
+
 	}
 
 	public void cancelSpotInstancesRequests() {
@@ -163,5 +152,54 @@ public class SpotInstancesAllocator {
 			LOG.warn("Error Code: " + e.getErrorCode());
 			LOG.warn("Request ID: " + e.getRequestId());
 		}
+	}
+	
+	public void cancelSpotInstancesRequests(int n) {
+		try {
+			
+			DescribeSpotInstanceRequestsRequest spotInstanceRequestsRequest = new DescribeSpotInstanceRequestsRequest();
+			DescribeSpotInstanceRequestsResult spotInstanceRequestsResult = ec2.describeSpotInstanceRequests(spotInstanceRequestsRequest);
+			List<SpotInstanceRequest> requestList = spotInstanceRequestsResult.getSpotInstanceRequests();
+			
+			spotInstanceRequestIds = new ArrayList<String>();
+			for (int i = 0; i < n; i++)
+				spotInstanceRequestIds.add(requestList.get(i).getSpotInstanceRequestId());
+			
+			//Cancel requests.
+			CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(spotInstanceRequestIds);
+			CancelSpotInstanceRequestsResult cancelResult = ec2.cancelSpotInstanceRequests(cancelRequest);
+			List<CancelledSpotInstanceRequest> cancelledRequests = cancelResult.getCancelledSpotInstanceRequests(); 
+
+			LOG.info("Cancelled " + cancelledRequests.size() + "Spot Instance Requests.");
+
+		} catch (AmazonServiceException e) {
+			LOG.warn("Error canceling instances");
+			LOG.warn("Caught Exception: " + e.getMessage());
+			LOG.warn("Reponse Status Code: " + e.getStatusCode());
+			LOG.warn("Error Code: " + e.getErrorCode());
+			LOG.warn("Request ID: " + e.getRequestId());
+		}
+	}
+
+	public int getNumOpenedSpotInstancesRequests() {
+		
+		int openedSpotInstancesRequests = 0;
+		
+		// Retrieve all of the requests
+		DescribeSpotInstanceRequestsRequest describeRequest = new DescribeSpotInstanceRequestsRequest();
+		DescribeSpotInstanceRequestsResult describeResult = ec2.describeSpotInstanceRequests(describeRequest);
+		List<SpotInstanceRequest> describeResponses = describeResult.getSpotInstanceRequests();
+		
+		for (SpotInstanceRequest describeResponse : describeResponses) {
+			if(describeResponse.getState().equals("open"))
+				openedSpotInstancesRequests++;
+			
+			else if(describeResponse.getState().equals("active"))
+				if(!describeResponse.getStatus().equals("fulfilled"))
+					openedSpotInstancesRequests++;
+
+		}
+		
+		return openedSpotInstancesRequests;
 	}
 }

@@ -28,10 +28,11 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 
 	public int applyProvisioningPolicy() {
 		
-		int runningInstancesNum;
+		int runningInstancesNum, openedSpotRequests;
 		
 		//get number of active Instances 
-		runningInstancesNum = Monitor.getInstance().getNumRunningInstances();
+		runningInstancesNum = Monitor.getInstance().getNumRunningOrPendingInstances();
+		openedSpotRequests = SpotInstancesAllocator.getInstance().getNumOpenedSpotInstancesRequests();
 		
 		//get Jobs Info from DB
 		sql2o = Database.getConnection();
@@ -49,8 +50,36 @@ public class ProvisioningPolicyBasic implements ProvisioningPolicyInterface {
 		LOG.info("Number of unassigned Jobs: " + unassignedJobs);
 		LOG.info("Optimal Instance Number: " + optimalInstanceNumber);
 		LOG.info("Running Instance Number: " + runningInstancesNum);
+		LOG.info("Opened Spot Requests Number: " + openedSpotRequests);
 		
-		return optimalInstanceNumber - runningInstancesNum;
+		if(runningInstancesNum == optimalInstanceNumber) {
+			
+			SpotInstancesAllocator.getInstance().cancelSpotInstancesRequests();
+			return 0;
+			
+		} else if(runningInstancesNum > optimalInstanceNumber) {
+			
+			SpotInstancesAllocator.getInstance().cancelSpotInstancesRequests();
+			return optimalInstanceNumber - runningInstancesNum;
+			
+		} else if(runningInstancesNum < optimalInstanceNumber) {
+			
+			int toBeAllocatedInstanceNumber = optimalInstanceNumber - runningInstancesNum;
+			
+			if(openedSpotRequests > toBeAllocatedInstanceNumber) {
+				
+				SpotInstancesAllocator.getInstance().cancelSpotInstancesRequests(openedSpotRequests - toBeAllocatedInstanceNumber);
+				return 0;
+				
+			} else {
+				
+				return toBeAllocatedInstanceNumber - openedSpotRequests;
+				
+			}
+			
+		}
+		
+		return 0;
 		
 	}
 

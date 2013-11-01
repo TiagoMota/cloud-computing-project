@@ -117,7 +117,7 @@ public class AllocationManager {
 	
 	private void allocateMachines(int instancesToAllocate) {
 		
-		int normalInstancesRunning = Monitor.getInstance().getNumRunningNormalInstances();
+		int normalInstancesRunning = Monitor.getInstance().getNumRunningOrPendingNormalInstances();
 		int maxAllocatableInstances;
 		int allocatedNormalInstances;
 		
@@ -138,7 +138,8 @@ public class AllocationManager {
 			LOG.info("Allocated " + allocatedNormalInstances + " default instances");
 			
 		}
-		else {
+		
+		if (instancesToAllocate > 0){
 			Thread SpotInstancesThread = new SpotInstancesThread (instancesToAllocate);
 			SpotInstancesThread.start();
 		}
@@ -200,10 +201,6 @@ public class AllocationManager {
 		
 		try {
 
-			//Cancel spot instance requests
-			SpotInstancesAllocator.getInstance().cancelSpotInstancesRequests();
-
-			
 			//Retrieve the list of instances from EC2
 			DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
 			List<Reservation> reservations = describeInstancesRequest.getReservations();
@@ -215,18 +212,32 @@ public class AllocationManager {
 			//Decide which instances to terminate
 			for (Instance instance : instances) {
 				
+				LOG.debug("ID " + instance.getInstanceId() + ", TAGs:" + instance.getTags().toString());
 				//Continue if: a non cloudOCR instance is being analyzed
-				if(!instance.getTags().contains(new Tag("cloudocr"))) {
+				boolean isCloudOCR = false;
+				for (Tag tag : instance.getTags()){
+					if(tag.getKey().equals("cloudocr")) {
+						isCloudOCR = true;
+						continue;
+					}
+				}
+				
+				if(!isCloudOCR){
+					LOG.debug(instance.getInstanceId() + ": skipped no cloudocr");
 					continue;
 				} else {
 					//If onlySpotInstances is true then deallocate ONLY Spot Instances
 					if (onlySpotInstances) {
-						if (!instance.getTags().contains(new Tag("cloudocr", "spotinstance")))
+						if (!instance.getTags().contains(new Tag().withKey("cloudocr").withValue("spotinstance"))) {
+							LOG.debug(instance.getInstanceId() + ": skipped no spotinstance");
 							continue;
+						}
 					//Else deallocate it unless its the Master
 					} else {
-						if (instance.getTags().contains(new Tag("cloudocr", "master")))
+						if (instance.getTags().contains(new Tag().withKey("cloudocr").withValue("master")) || instance.getTags().contains(new Tag().withKey("Name").withValue("cloudocr-worker-setup")) ) {
+							LOG.debug(instance.getInstanceId() + ": skipped master");
 							continue;
+						}
 					}
 				}
 				
@@ -295,7 +306,7 @@ public class AllocationManager {
 		
 		if (terminatedInstancesCount < instancesToTerminateNum) {
 			LOG.info("Terminated " + terminatedInstancesCount + " spot instances, proceeding to terminate " + (instancesToTerminateNum - terminatedInstancesCount) + " default instance(s)");
-			return deallocateMachines(instancesToTerminateNum - terminatedInstancesCount, false);
+			return terminatedInstancesCount + deallocateMachines(instancesToTerminateNum - terminatedInstancesCount, false);
 		}
 		LOG.info("Terminated " + terminatedInstancesCount + " default instances");
 		return terminatedInstancesCount;
