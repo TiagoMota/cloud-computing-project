@@ -246,18 +246,17 @@ Laptop & 30s & n.a. \\ \hline
 
 \subsection{Allocation behavior}
 
-To test whether our application indeed had desired behavior we ran several workloads.
+We tested whether CloudOCR had the desired allocation behaviour by simulating a workload. We configured CloudOCR to only use spot instances. We configured the ideal number of workers to be 10\% the number of assigned jobs, which corresponds to completing all jobs in about an hour (see Table \ref{tesperfresults}). We then started the system with 100 jobs available and added 100 jobs more at the 15 minute mark.
 
-For our first test we configured CloudOCR to only use spot instances. We configured the ideal number of workers to be 10\% the number of assigned jobs, which corresponds to completing all jobs in about an hour (see Table \ref{tesperfresults}). We then started the system with 100 jobs available and added 100 jobs more at the 15 minute mark.
 Furthermore we decreased the "de-allocation protection" from 50 minutes to 10 minutes. The de-allocation protection prevents workers from being decomissioned if they have been running fewer than 50 minutes of an hour. This is because Amazon charges for a full hour even if you use only a portion of an hour, so this prevents needless wasting of money. We did this so de-allocation behavior was more apparent. The de-allocation protection also protects too much workers from being killed too fast, which would cause a slowdown when nearly all jobs were completed.
 
-As can be seen clearly from the results our application closely follows the configured allocation. We can also see a lag before the workers become available, which is due to amazon taking a while to full-fill our spot requests and the machines booting up. The lag before de-allocation is from the protection mentioned earlier.
+As can be seen clearly from the results (Figure \ref{fig_allperfresults}) our application closely follows the configured allocation. We can also see a lag before the workers become available, which is due to amazon taking a while to full-fill our spot requests and the machines booting up. The lag before de-allocation is from the protection mentioned earlier.
 
 \begin{figure}
 \centering
 \includegraphics[width=0.5\textwidth]{"results-allocation-2"}
 \caption{Allocation characteristics with workload 1}
-\label{fig_tesperfresults}
+\label{fig_allperfresults}
 \end{figure}
  
 
