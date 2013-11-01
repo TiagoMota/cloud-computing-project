@@ -152,7 +152,7 @@ public class AllocationManager {
 				// CREATE EC2 INSTANCES
 				RunInstancesRequest runInstancesRequest = new RunInstancesRequest()
 					.withInstanceType("t1.micro")
-					.withImageId("ami-7738db00")
+					.withImageId("ami-836685f4")
 					.withMinCount(1)
 					.withMaxCount(1)
 					.withSecurityGroupIds("cloudocr-worker")
