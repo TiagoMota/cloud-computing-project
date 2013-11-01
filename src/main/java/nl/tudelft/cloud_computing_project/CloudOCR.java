@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+import nl.tudelft.cloud_computing_project.experimental.allocation_benchmarks.AllocationBenchmarkMonitor;
 import nl.tudelft.cloud_computing_project.instance_allocation.AllocationManager;
 
 import org.slf4j.Logger;
@@ -24,6 +25,8 @@ public class CloudOCR {
 	private static Thread MonitorThread;
 	private static Thread AllocationManagerThread;
 	private static Thread FaultManagerThread;
+
+	private static Thread AllocationBenchmarkMonitorThread;
 	
 	
 	public static void main(String[] args) {
@@ -100,6 +103,15 @@ public class CloudOCR {
 		};
 		// Start the Allocation Manager
 		AllocationManagerThread.start();
+		
+		// Thread that runs the AllocationBenchmarkMonitor
+		AllocationBenchmarkMonitorThread = new Thread() {
+			public void run(){
+				AllocationBenchmarkMonitor.monitorAllocationBenchmark();
+			}
+		};
+		// Start the AllocationBenchmarkMonitor
+		AllocationBenchmarkMonitorThread.start();
 		
 	}
 
