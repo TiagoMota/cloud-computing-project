@@ -55,13 +55,20 @@ public class SetupTestDataSet {
 			.setFilesize(100188)
 			.setPriority(50)
 			.setSubmissionTime(submissionTime)
-			.create()*/
+			.create()
 			Job.factory()
 			.setFilename("https://s3-eu-west-1.amazonaws.com/cloudocr-test/input/standardfile.jpg")
 			.setFilesize(456894)
 			.setPriority(50)
 			.setSubmissionTime(submissionTime)
+			.create()*/
+			Job.factory()
+			.setFilename("https://s3-eu-west-1.amazonaws.com/cloudocr-test/input/testfile.jpg")
+			.setFilesize(456894)
+			.setPriority(50)
+			.setSubmissionTime(submissionTime)
 			.create()
+			
 	};
 	
 	private static final String insertjobquery =
