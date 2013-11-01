@@ -42,10 +42,21 @@ Blah
 
 
 \subsection{Problem}
-WantCloud BV want a system based on a Infrastructure-as-a-Service (IaaS), to OCR digitalized collections of papers, from a Library. The cost to process these papers should be as low as possible and in case of new books, these should be digitalized within a reasonable time.
+
+WantCloud BV is a library that wants to enter the 21 century. They digitized their existing book collection and started digitally renting them.
+
+While this first step was a success, they now want to OCR their digital collection so they can search through the texts and provide the digital books with text instead of just the images.
+
+WantCloud BV does not want to build the infrastructure themselves but would rather lease it from a Cloud Provider. Their main problem is that as a public service they need to keep costs as low as possible.
+
+The existing (large) selection of books is under little time constraint to OCR, but they do want to be able to prioritize new books and OCR them very quickly.
 
 \subsection{Proposed solution}
-Using Amazon Web Services as the cloud infrastructure provider, we present CloudOCR, a system capable of OCR an entire digitalized library of papers, returning the output in simple plain text. The system have to guarantee scaling during peak usage and load-balance the across the multiple machines, so to effectively do this, CloudOCR monitors the working machines or instances (hereby called workers) to keep track of the system current load and the need to allocating or deallocating a worker. Also, all the jobs are scheduled to the workers in a way that a minimal workload balance can be maintained.
+Using Amazon Web Services as the cloud infrastructure provider, we will develop CloudOCR, a system capable of automatically OCR'ing images, returning the output in plain text.
+
+The system will be able to scale according to the number of available jobs and load-balance the workload evenly across the rented machines (from now on called workers).
+
+The system will be fully automatic, aside from the addition of jobs and the resolving faulty jobs.
 
 \subsection{Report structure}
 The next section refers to a detailed system design to fully understand the system components, followed by all the experiments and their respective setups. The final two sections of this document will correspond to the results discussion and conclusions.
