@@ -2,6 +2,7 @@ package nl.tudelft.cloud_computing_project.experimental.allocation_benchmarks;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.Date;
 
 import nl.tudelft.cloud_computing_project.CloudOCR;
 import nl.tudelft.cloud_computing_project.Monitor;
@@ -58,8 +59,8 @@ public class AllocationBenchmarkMonitor {
 
 				//Allocated VM
 				allocatedInstancesNum = Monitor.getInstance().getNumRunningOrPendingInstances();
-
-				result = completedJobsNumber + "," + uncompletedJobsNumber + "," + optimalInstanceNumber + "," + allocatedInstancesNum + "\n";
+				
+				result = (new Date().toGMTString()) + "," + completedJobsNumber + "," + uncompletedJobsNumber + "," + optimalInstanceNumber + "," + allocatedInstancesNum + "\n";
 
 				fw.append(result);
 				fw.flush();
