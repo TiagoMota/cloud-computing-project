@@ -41,24 +41,24 @@ Blah
 \section{Introduction}
 
 
-\subsection{Problem}
+\subsection*{Problem}
 
-WantCloud BV is a library that wants to enter the 21 century. They digitized their existing book collection and started digitally renting them.
+WantCloud BV is a library that wants to make its entrance into the 21th century. They digitized their existing book collection and started digitally renting them.
 
-While this first step was a success, they now want to OCR their digital collection so they can search through the texts and provide the digital books with text instead of just the images.
+Since this first step was a success, they now want to OCR their digital collection, adding features such as searching through, highlighting, or tagging the texts, in order to offer a better service to their customers.
 
 WantCloud BV does not want to build the infrastructure themselves but would rather lease it from a Cloud Provider. Their main problem is that as a public service they need to keep costs as low as possible.
 
-The existing (large) selection of books is under little time constraint to OCR, but they do want to be able to prioritize new books and OCR them very quickly.
+Their existing (large) selection of books is under little time constraint to OCR, but they do want to be able to prioritize new books and OCR them very quickly.
 
-\subsection{Proposed solution}
-Using Amazon Web Services as the cloud infrastructure provider, we will develop CloudOCR, a system capable of automatically OCR'ing images, returning the output in plain text.
+\subsection*{Proposed solution}
+Using Amazon Web Services as the cloud infrastructure provider, we developed CloudOCR, a cloud-based system for the automatic OCR-conversion of images.
 
-The system will be able to scale according to the number of available jobs and load-balance the workload evenly across the rented machines (from now on called workers).
+CloudOCR scales according to the number of available jobs, load-balances the workload evenly across the rented machines (from now on called workers) and provides fault tolerance in both the master and the workers. 
 
-The system will be fully automatic, aside from the addition of jobs and the resolving faulty jobs.
+The system is fully automatic, aside from the submission of jobs to the database and the resolution of faulty jobs.
 
-\subsection{Report structure}
+\subsection*{Report structure}
 In section \ref{sec:backgroundonapplication} we will first detail the application and its requirements. In section \ref{sec:systemdesign} we will show the design of the solution. In section \ref{sec:experimentalresults} we will show the experiments we used to evaluate the system.
 In the final two sections of this report we will draw conclusions from the evaluations.
 
