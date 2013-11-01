@@ -34,8 +34,7 @@
 \maketitle
 
 \begin{abstract}
-
-Blah
+In this report we introduce a cloud-based system for automatic OCR-conversion of image files, called CloudOCR. The application uses elastic cloud resource provisioning and resource allocation to improve scalability in performance. The experiments conducted, shows that CloudOCR
 \end{abstract}
 
 \section{Introduction}
@@ -271,7 +270,28 @@ As can be seen clearly from the results our application closely follows the conf
 
 \section{Discussion}
 
+	\begin{table}
+	\caption{Extrapolation of charged-costs}
+	\label{extpcosts}
+	\centering
+	\begin{tabular}{| l | l | l | l |}
+	\hline
+	Jobs & Micro (normal/spot) & Small (n/s) & Medium (n/s)\\ \hline
+	100.000 &  180 / 54 \$ & 170 / 41 \$ &  160 / 41 \$ \\ \hline
+	1.000.000 &  1.800 / 540 \$ & 1.700 / 410 \$ &  1.600 / 370 \$ \\ \hline
+	10.000.000 &  18.000 / 5.400\$ & 17.000 / 4.100 \$ & 16.000 / 3.700 \$ \\ \hline
+	\end{tabular}
+	\end{table}	
+	
+	As future work, CloudOCR could be improved by doin the following:
+	\begin{LaTeXdescription}
+		\item Carrying out benchmark test on larger instances types
+		\item Compilation of information of the monitor, to create statistics
+		\item 
+	\end{LaTeXdescription}
 \section{Conclusion}
+In this report, we designed a system based on a IaaS cloud platform for OCR-conversion of ``JPEG'' image files, and evaluated its performance on Amazon Web Services.
+Benchmark tests show that
 
 \begin{thebibliography}{9}
 
