@@ -31,7 +31,7 @@ Blah
 
 
 \subsection{Problem}
-WantCloud BV with the providing of facilities to run OCR jobs on Tesseract-OCR\footnote{An OCR Engine that was developed at HP Labs between 1985 and 1995... and now at Google.} have been assuring a great amount of financial income and also a preoccupying increase of this service popularity. Since there is only one machine to execute all the jobs submitted by all the users, WantCloud BV verified that most of the system is no longer capable of guaranteeing the job deadlines for all the users, violating it's own Terms-of-Use. They though that is necessary to improve the limitations of one single machine running Tesseract by using a IaaS platform to run multiple instances of the program.
+WantCloud BV want a system based on a Infrastructure-as-a-Service (IaaS), to OCR digitalized collections of papers, from a Library. The cost to process these papers should be as low as possible and in case of new books, these should be digitalized within a reasonable time.
 
 \subsection{Proposed solution}
 Using Amazon Web Services as the cloud infrastructure provider, we present CloudOCR, a system capable of OCR an entire digitalized library of papers, returning the output in simple plain text. The system have to guarantee scaling during peak usage and load-balance the across the multiple machines, so to effectively do this, CloudOCR monitors the working machines or instances (hereby called workers) to keep track of the system current load and the need to allocating or deallocating a worker. Also, all the jobs are scheduled to the workers in a way that a minimal workload balance can be maintained.
