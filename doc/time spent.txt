@@ -1,6 +1,0 @@
-Application selection: about 3x1 hour (thinking)
-System design:
-Wednesday 9/10 - 10:15 to 13:00 x2 (thinking)
-Wednesday 9/10 - 13:00 - 14:00 x1 (thinking)
-Wednesday 16/10 - 11:00 to 12:00 x3 (thinking)
-Friday 18/10 - 00:00 to 01:00 x1 (Project environment setup)
