@@ -7,7 +7,7 @@ import nl.tudelft.cloud_computing_project.experimental.SetupTestDataSet;
 public class DynamicJobSubmissionExperiment {
 
 	public static void main(String [] args) {
-		dynamicJobSubmissionExperiment(10000);
+		dynamicJobSubmissionExperiment(1000);
 	}
 	
 	public static void dynamicJobSubmissionExperiment(int JobsToSubmitNumber) {
@@ -18,14 +18,14 @@ public class DynamicJobSubmissionExperiment {
 		
 		while (submittedJobsNumber != JobsToSubmitNumber) {
 			
-			SetupTestDataSet.addjobs(500);
-			System.out.println("Added 500 jobs");
-			submittedJobsNumber += 10;
+			SetupTestDataSet.addjobs(50);
+			System.out.println("Added 50 jobs");
+			submittedJobsNumber += 50;
 			
 			try {
-				sleepMinutes = randomGenerator.nextInt(10);
-				System.out.println("Sleep for: " + ((sleepMinutes + 5) * 60000) + "ms");
-				Thread.sleep((sleepMinutes + 5) * 60000);
+				sleepMinutes = randomGenerator.nextInt(7);
+				System.out.println("Sleep for: " + (sleepMinutes) + " min");
+				Thread.sleep((sleepMinutes) * 60000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
