@@ -279,7 +279,7 @@ public class AllocationManager {
 				int firstKey = orderedInstances.firstKey();
 				
 				//Do not terminate any if they still have a lot of time before charging
-				if(firstKey > 50) {
+				if(firstKey > 10) {
 					if(!onlySpotInstances)
 						return terminatedInstancesCount;
 					else
@@ -299,7 +299,17 @@ public class AllocationManager {
 					LOG.warn("Allocation Manager stopped Instance: " + terminateResult.toString());
 
 					sql2o = Database.getConnection();
-					sql2o.createQuery(delete_instance_assignment_sql, "delete_instance_assignment_sql").addParameter("instanceId", instanceIdToBeRemoved).executeUpdate();
+					try {
+						sql2o.createQuery(delete_instance_assignment_sql, "delete_instance_assignment_sql").addParameter("instanceId", instanceIdToBeRemoved).executeUpdate();
+					} catch (Exception e) {
+						System.out.println(e.getMessage());
+						try {
+							Thread.sleep(30000);
+						} catch (InterruptedException e1) {
+							e1.printStackTrace();
+						}
+						sql2o.createQuery(delete_instance_assignment_sql, "delete_instance_assignment_sql").addParameter("instanceId", instanceIdToBeRemoved).executeUpdate();
+					}
 					
 					instanceList.remove(instanceIdToBeRemoved);
 					terminatedInstancesCount++;
