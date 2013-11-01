@@ -4,7 +4,7 @@
 %\usepackage{amsfonts}
 %\usepackage{algorithm}% http://ctan.org/pkg/algorithms
 %\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
-\usepackage{hyperref}
+\usepackage[]{hyperref}
 %\usepackage{verbatim}
 %\usepackage{textcomp}
 \usepackage{pdflscape}
@@ -121,16 +121,16 @@ The allocation manager allocates workers according to the number of unprocessed 
 
 \begin{LaTeXdescription}
 \item[Automation]
-Almost all of the implemented system is automated, except when submitting new jobs and when dealing with faulty ones, where the job is deleted from the queue.
+Almost all of the implemented system is automated, except submitting new jobs and inspecting faulty jobs (they are removed from the queue).
 
 \item[Elasticity]
-The \textbf{Allocation Manager} handle all the new resources (instances) allocation an deallocation, providing an automatic scaling to the system. The master itself is never scaled.
+The \textbf{Allocation Manager} handle all the worker allocation an deallocation, providing an automatic scaling to the system. The master or database are not scaled.
 
 \item[Performance]
 The \textbf{Job Scheduler} is responsible for guaranteeing the system load balance.
 
 \item[Reliability]
-The system uses a master-slave architecture where the master contains all of the management operations, while the slaves (workers) process jobs. Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handle all the failures in VM's and its jobs. For the master, there is no reliability provided
+Reliability for the workers and jobs is provided by the \textbf{Fault Manager}, which handle all the failures in workers and its jobs. For the master, there is no reliability provided.
 
 \item[Monitoring]
 A dedicated monitoring subsystem keep track of the workers and aggregates information for other components to use and can also be logged if necessary.
@@ -220,11 +220,11 @@ As can be seen from the results in Table \ref{dbperfresults} and Figure \ref{fig
 
 \subsection{Instance type selection}
 
-To check which instance type would be the best to use with our application we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
+To check which instance type would be the best to use for our workers we ran the same job 50 times on the 3 different instance types. To compare the performance we also ran the test on a relatively standard desktop machine (CPU: Intel Core i7 2670QM, RAM: 16GB, OS: Windows 8.0 x64). The results can be seen in Table \ref{tesperfresults} and Figure \ref{fig_tesperfresults}
 
 Our main findings are that the chosen instance type does not greatly influence the price per job if spot instances are used. For production uses we would have chosen the medium instance (and tested other instances to see if they were even cheaper). However to reap the benefits of the free resources provided by Amazon\footnote{Amazon AWS has a "free usage tier" which among other consists of 750 free EC2 micro instance hours and 750 free micro RDS instance hours} we chose to use micro instances in all our development and experiments.
 
-Based on these results we also do a rough estimate on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
+Based on these results we also do \emph{a rough estimate} on the choice for cloud or non-cloud system. The used system costs about \$750 and uses about 200W of power (we used \$0.25/Kwh as energy price). This results in the following calculation for the equivalent cost point of a desktop and cloud solution:
 $$
 750\$ + 0.2 \cdot 0.25\$ \cdot \frac{\text{\#jobs}}{120} = 0.0016\$ \cdot \text{\#jobs}
 $$
@@ -270,6 +270,14 @@ Laptop & 30s & n.a. \\ \hline
 
 \bibitem{tesseractocr} {
 	Tesseract OCR: \url{https://code.google.com/p/tesseract-ocr/}
+}
+
+\bibitem{sql2o} {
+	Sql2o: \url{http://www.sql2o.org/}
+}
+
+\bibitem{SLF4J} {
+	The Simple Logging Facade for Java (SLF4J) : \url{http://www.slf4j.org/}
 }
 
 \end{thebibliography}
