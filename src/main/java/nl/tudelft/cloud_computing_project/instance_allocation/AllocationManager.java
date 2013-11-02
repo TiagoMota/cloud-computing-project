@@ -299,17 +299,8 @@ public class AllocationManager {
 					LOG.warn("Allocation Manager stopped Instance: " + terminateResult.toString());
 
 					sql2o = Database.getConnection();
-					try {
-						sql2o.createQuery(delete_instance_assignment_sql, "delete_instance_assignment_sql").addParameter("instanceId", instanceIdToBeRemoved).executeUpdate();
-					} catch (Exception e) {
-						System.out.println(e.getMessage());
-						try {
-							Thread.sleep(30000);
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}
-						sql2o.createQuery(delete_instance_assignment_sql, "delete_instance_assignment_sql").addParameter("instanceId", instanceIdToBeRemoved).executeUpdate();
-					}
+					sql2o.createQuery(delete_instance_assignment_sql, "delete_instance_assignment_sql").addParameter("instanceId", instanceIdToBeRemoved).executeUpdate();
+					
 					
 					instanceList.remove(instanceIdToBeRemoved);
 					terminatedInstancesCount++;
